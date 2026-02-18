@@ -3344,6 +3344,7 @@
                     await loadFromCloud();
                     init();
                     startRealtimeSync();
+                    startPolling();
                     return;
                 }
             } catch(e) {
@@ -3461,6 +3462,7 @@
                 if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
 
                 if (data) {
+                    _lastCloudTs = data.updated_at || null;
                     // Build a lookup of local photos by name+sku so we can preserve them
                     const localPhotoMap = {};
                     inventory.forEach(item => {
@@ -3559,58 +3561,60 @@
 
         // ── REPLACEMENT: saveToStorage now syncs everything ────────────
         function saveToStorage() {
-            // Immediate localStorage save
             saveToLocalStorage();
-            // Broadcast to other tabs on same device instantly
-            if (window._syncChannel) {
-                try {
-                    const cleanInv = JSON.parse(JSON.stringify(inventory)).map(item => ({...item, photos: item.photos || []}));
-                    window._syncChannel.postMessage({
-                        type: 'data_update',
-                        inventory: cleanInv,
-                        platforms: JSON.parse(JSON.stringify(platforms)),
-                        tasks: JSON.parse(JSON.stringify(tasks)),
-                        expenses: JSON.parse(JSON.stringify(expenses)),
-                        mileage: JSON.parse(JSON.stringify(mileageTrips)),
-                        ts: Date.now()
-                    });
-                } catch(e) {}
-            }
-            // Debounced cloud sync (300ms)
+            // Signal other same-device tabs via localStorage event
+            try { localStorage.setItem('reseller_pro_update', Date.now()); } catch(e) {}
             debouncedSync();
         }
 
-        // ── BroadcastChannel: instant same-device cross-tab sync ───────
-        (function() {
-            try {
-                window._syncChannel = new BroadcastChannel('reseller_pro_sync');
-                window._syncChannel.onmessage = function(e) {
-                    if (e.data?.type !== 'data_update') return;
-                    // Apply incoming data, preserving local photos (not sent over channel)
-                    const localPhotoMap = {};
-                    inventory.forEach(item => {
-                        if (item.photos?.length) localPhotoMap[item.sku] = item.photos;
-                    });
-                    inventory = (e.data.inventory || []).map(item => ({
-                        ...item,
-                        photos: localPhotoMap[item.sku] || item.photos || [],
-                        dateSold: item.dateSold ? new Date(item.dateSold) : null
-                    }));
-                    platforms = e.data.platforms || platforms;
-                    tasks = e.data.tasks || tasks;
-                    expenses = e.data.expenses || expenses;
-                    mileageTrips = e.data.mileage || mileageTrips;
-                    // Re-render everything silently
-                    renderInventory();
-                    if (currentView === 'grid') renderGallery();
-                    updateStats();
-                    renderTasks();
-                    updateTaskLinkedItems();
-                };
-            } catch(e) {
-                window._syncChannel = null;
-            }
-        })();
+        // ── Cross-tab sync: storage event fires in OTHER tabs instantly ─
+        window.addEventListener('storage', function(e) {
+            if (e.key !== 'reseller_pro_update') return;
+            // Another tab on this device just saved — reload from localStorage
+            const fresh = loadFromStorage();
+            const localPhotoMap = {};
+            inventory.forEach(item => { if (item.photos?.length) localPhotoMap[item.sku] = item.photos; });
+            inventory = (fresh.inventory || []).map(item => ({
+                ...item,
+                photos: localPhotoMap[item.sku] || item.photos || [],
+                dateSold: item.dateSold ? new Date(item.dateSold) : null
+            }));
+            platforms = fresh.platforms || platforms;
+            tasks = fresh.tasks || tasks;
+            expenses = fresh.expenses || expenses;
+            mileageTrips = fresh.mileage || mileageTrips;
+            renderInventory();
+            if (currentView === 'grid') renderGallery();
+            updateStats();
+            renderTasks();
+            updateTaskLinkedItems();
+        });
+
+        // ── Cross-device polling: pull from cloud every 8s when signed in ─
+        let _pollInterval = null;
+        let _lastCloudTs = null;
+
+        function startPolling() {
+            stopPolling();
+            _pollInterval = setInterval(async function() {
+                if (!syncEnabled || !sbClient || !currentUser) return;
+                try {
+                    const { data } = await sbClient
+                        .from('reseller_data')
+                        .select('updated_at')
+                        .eq('user_id', currentUser.id)
+                        .single();
+                    if (data?.updated_at && data.updated_at !== _lastCloudTs) {
+                        _lastCloudTs = data.updated_at;
+                        await loadFromCloud();
+                    }
+                } catch(e) {}
+            }, 8000);
+        }
+
+        function stopPolling() {
+            if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
+        }
 
         const stored = loadFromStorage();
         
@@ -7510,12 +7514,14 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
                         await loadFromCloud();
                         init();
                         startRealtimeSync();
+                        startPolling();
                     } else if (event === 'SIGNED_OUT') {
                         currentUser = null;
                         syncEnabled = false;
                         updateAuthUI();
                         setSyncStatus('offline', 'Local Only');
                         stopRealtimeSync();
+                        stopPolling();
                     }
                 });
             }

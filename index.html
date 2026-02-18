@@ -7042,7 +7042,6 @@
             document.getElementById('aiScanError').style.display = 'none';
             document.getElementById('aiScanPreviewBox').style.display = 'none';
             document.getElementById('aiScanAnalyzeRow').style.display = 'none';
-            document.getElementById('aiScanCameraInput').value = '';
             document.getElementById('aiScanGalleryInput').value = '';
             document.getElementById('aiScanOverlay').style.display = 'flex';
         }
@@ -7061,19 +7060,106 @@
             });
         });
 
+        // Compress image to max 800px and quality 0.7 before sending to API
+        function compressImage(dataUrl, maxDim, quality) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = function() {
+                    let w = img.width, h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                        else { w = Math.round(w * maxDim / h); h = maxDim; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = dataUrl;
+            });
+        }
+
         function aiScanPhotoSelected(input) {
             if (!input.files || !input.files[0]) return;
             const file = input.files[0];
             const reader = new FileReader();
-            reader.onload = function(e) {
-                aiScanImageDataUrl = e.target.result;
-                document.getElementById('aiScanPreviewImg').src = aiScanImageDataUrl;
+            reader.onload = async function(e) {
+                // Compress before storing — faster preview and faster API
+                const compressed = await compressImage(e.target.result, 800, 0.75);
+                aiScanImageDataUrl = compressed;
+                document.getElementById('aiScanPreviewImg').src = compressed;
                 document.getElementById('aiScanPreviewBox').style.display = 'block';
-                document.getElementById('aiScanAnalyzeRow').style.display = 'block';
+                document.getElementById('aiScanAnalyzeRow').style.display = 'none'; // hidden — auto-runs
+                // Auto-trigger scan immediately after photo selected
+                runAIScan();
             };
             reader.readAsDataURL(file);
         }
         window.aiScanPhotoSelected = aiScanPhotoSelected;
+
+        // ── Desktop webcam capture ──────────────────────────────────────
+        let desktopStream = null;
+
+        async function openDesktopCamera() {
+            const overlay = document.getElementById('aiScanOverlay');
+            // Build inline webcam UI
+            let camBox = document.getElementById('aiDesktopCamBox');
+            if (!camBox) {
+                camBox = document.createElement('div');
+                camBox.id = 'aiDesktopCamBox';
+                camBox.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:3500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+                camBox.innerHTML = `
+                    <video id="aiDesktopVideo" autoplay playsinline muted style="max-width:90vw;max-height:70vh;border-radius:12px;background:#000;"></video>
+                    <div style="display:flex;gap:12px;">
+                        <button onclick="captureDesktopPhoto()" style="padding:14px 32px;border:none;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;font-size:16px;font-weight:700;cursor:pointer;">📸 Capture</button>
+                        <button onclick="closeDesktopCamera()" style="padding:14px 24px;border:none;border-radius:12px;background:rgba(255,255,255,0.15);color:white;font-size:15px;cursor:pointer;">Cancel</button>
+                    </div>
+                `;
+                document.body.appendChild(camBox);
+            } else {
+                camBox.style.display = 'flex';
+            }
+
+            try {
+                desktopStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+                document.getElementById('aiDesktopVideo').srcObject = desktopStream;
+            } catch(err) {
+                closeDesktopCamera();
+                toast('Camera not available: ' + (err.message || err.name), 'error');
+            }
+        }
+        window.openDesktopCamera = openDesktopCamera;
+
+        function captureDesktopPhoto() {
+            const video = document.getElementById('aiDesktopVideo');
+            if (!video) return;
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            closeDesktopCamera();
+            // Compress and auto-scan
+            compressImage(canvas.toDataURL('image/jpeg', 0.9), 800, 0.75).then(compressed => {
+                aiScanImageDataUrl = compressed;
+                document.getElementById('aiScanPreviewImg').src = compressed;
+                document.getElementById('aiScanPreviewBox').style.display = 'block';
+                document.getElementById('aiScanAnalyzeRow').style.display = 'none';
+                runAIScan();
+            });
+        }
+        window.captureDesktopPhoto = captureDesktopPhoto;
+
+        function closeDesktopCamera() {
+            if (desktopStream) {
+                desktopStream.getTracks().forEach(t => t.stop());
+                desktopStream = null;
+            }
+            const camBox = document.getElementById('aiDesktopCamBox');
+            if (camBox) camBox.style.display = 'none';
+        }
+        window.closeDesktopCamera = closeDesktopCamera;
 
         async function runAIScan() {
             if (!aiScanImageDataUrl) return;
@@ -7084,7 +7170,6 @@
             document.getElementById('aiScanStep3').style.display = 'none';
             document.getElementById('aiScanError').style.display = 'none';
 
-            // Groq vision accepts the full base64 data URL directly as image_url
             const VALID_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             const mediaType = aiScanImageDataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
             if (!VALID_TYPES.includes(mediaType)) {
@@ -7099,22 +7184,11 @@
                 'Childrens Clothing','Computers & Tech','Electronics','Health & Wellness',
                 'Home Decor','Jewelry','Kids Collectibles','Kitchen & Dining','Media',
                 'Mens Clothing','Womens Clothing','Other'
-            ].join(', ');
+            ].join(',');
 
-            const prompt = `You are an expert reseller assistant. Analyze this image of an item for sale and extract the following information. Respond ONLY with a valid JSON object, no markdown, no explanation.
-
-Required JSON format:
-{
-  "name": "full descriptive product name",
-  "brand": "brand or manufacturer name, or empty string if unknown",
-  "category": "one of: ${categoryList}",
-  "condition": "one of: New, Like New, Good, Fair, Poor",
-  "estimatedPurchasePrice": number or null,
-  "estimatedSalePrice": number or null,
-  "notes": "any relevant details (model number, size, color, key features) in one sentence"
-}
-
-For prices, estimate realistic resale values based on what you know about this type of item. If you cannot estimate, use null.`;
+            // Shorter prompt = fewer input tokens = faster response
+            const prompt = `Identify this resale item. Reply ONLY with JSON, no markdown:
+{"name":"product name","brand":"brand or empty","category":"one of: ${categoryList}","condition":"New|Like New|Good|Fair|Poor","estimatedPurchasePrice":number|null,"estimatedSalePrice":number|null,"notes":"key details in one sentence"}`;
 
             try {
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -7125,14 +7199,12 @@ For prices, estimate realistic resale values based on what you know about this t
                     },
                     body: JSON.stringify({
                         model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-                        max_tokens: 512,
+                        max_tokens: 256,
+                        temperature: 0.1,
                         messages: [{
                             role: 'user',
                             content: [
-                                {
-                                    type: 'image_url',
-                                    image_url: { url: aiScanImageDataUrl }
-                                },
+                                { type: 'image_url', image_url: { url: aiScanImageDataUrl } },
                                 { type: 'text', text: prompt }
                             ]
                         }]
@@ -7146,11 +7218,8 @@ For prices, estimate realistic resale values based on what you know about this t
 
                 const data = await response.json();
                 const rawText = data.choices?.[0]?.message?.content || '';
-
-                // Parse JSON — strip any accidental markdown fences
                 const clean = rawText.replace(/```json|```/g, '').trim();
                 aiScanResult = JSON.parse(clean);
-
                 showAIScanResults(aiScanResult);
 
             } catch (err) {
@@ -7242,7 +7311,6 @@ For prices, estimate realistic resale values based on what you know about this t
             document.getElementById('aiScanError').style.display = 'none';
             document.getElementById('aiScanPreviewBox').style.display = 'none';
             document.getElementById('aiScanAnalyzeRow').style.display = 'none';
-            document.getElementById('aiScanCameraInput').value = '';
             document.getElementById('aiScanGalleryInput').value = '';
         }
         window.aiScanRetry = aiScanRetry;
@@ -7383,33 +7451,30 @@ For prices, estimate realistic resale values based on what you know about this t
                 <div id="aiScanStep1">
                     <div style="text-align:center;padding:16px 0 8px;">
                         <div style="font-size:13px;color:var(--text-secondary,var(--slate-600));margin-bottom:16px;">
-                            Take a clear photo of the item — front, label, or packaging. AI will identify it and fill in the details.
+                            Take or upload a photo — AI identifies the item and fills in the details instantly.
                         </div>
                         <div id="aiScanPreviewBox" style="display:none;margin-bottom:16px;">
                             <img id="aiScanPreviewImg" src="" style="max-width:100%;max-height:220px;border-radius:12px;object-fit:contain;border:2px solid var(--border-primary,var(--slate-200));">
                         </div>
                         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                            <label class="btn btn-primary" style="cursor:pointer;background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+                            <!-- Desktop: opens webcam via getUserMedia. Mobile: opens native camera via capture -->
+                            <button type="button" class="btn btn-primary" onclick="openDesktopCamera()" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
                                 📷 Take Photo
-                                <input type="file" id="aiScanCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="aiScanPhotoSelected(this)">
-                            </label>
+                            </button>
                             <label class="btn btn-secondary" style="cursor:pointer;">
                                 🖼 Choose Image
                                 <input type="file" id="aiScanGalleryInput" accept="image/*" style="display:none;" onchange="aiScanPhotoSelected(this)">
                             </label>
                         </div>
                     </div>
-                    <div id="aiScanAnalyzeRow" style="display:none;margin-top:16px;text-align:center;">
-                        <button class="btn btn-primary" onclick="runAIScan()" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);width:100%;font-size:15px;padding:14px;">
-                            ✨ Identify Item
-                        </button>
-                    </div>
+                    <!-- Analyze row hidden — scan triggers automatically on photo select -->
+                    <div id="aiScanAnalyzeRow" style="display:none;"></div>
                 </div>
                 <!-- Step 2: loading -->
                 <div id="aiScanStep2" style="display:none;text-align:center;padding:32px 16px;">
                     <div style="font-size:36px;margin-bottom:12px;animation:spin 1s linear infinite;display:inline-block;">⚙️</div>
-                    <div style="font-weight:600;color:var(--text-primary,var(--slate-900));">Analyzing item…</div>
-                    <div style="font-size:12px;color:var(--text-tertiary,var(--slate-400));margin-top:6px;">Claude is identifying the item and researching market value</div>
+                    <div style="font-weight:600;color:var(--text-primary,var(--slate-900));">Identifying item…</div>
+                    <div style="font-size:12px;color:var(--text-tertiary,var(--slate-400));margin-top:6px;">Groq AI is analyzing the image at lightning speed</div>
                 </div>
                 <!-- Step 3: results -->
                 <div id="aiScanStep3" style="display:none;">
@@ -7419,7 +7484,7 @@ For prices, estimate realistic resale values based on what you know about this t
                     </div>
                     <div style="display:flex;gap:10px;margin-top:16px;">
                         <button class="btn btn-primary" onclick="applyAIScanResults()" style="flex:1;background:linear-gradient(135deg,#7c3aed,#4f46e5);">✅ Fill Form</button>
-                        <button class="btn btn-secondary" onclick="aiScanRetry()" style="flex:1;">🔄 Try Again</button>
+                        <button class="btn btn-secondary" onclick="aiScanRetry()" style="flex:1;">🔄 Scan Again</button>
                     </div>
                 </div>
                 <!-- Error -->

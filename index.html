@@ -279,6 +279,11 @@
             color: #fb7185;
         }
 
+        [data-theme="dark"] .status-unlisted {
+            background: rgba(148,163,184,0.12);
+            color: #94a3b8;
+        }
+
         [data-theme="dark"] .profit-positive { color: #34d399; }
         [data-theme="dark"] .profit-negative { color: #fb7185; }
 
@@ -663,6 +668,11 @@
         .status-returned, .status-lost-damaged {
             background: var(--rose-50);
             color: var(--rose-700);
+        }
+
+        .status-unlisted {
+            background: var(--slate-100);
+            color: var(--slate-600);
         }
 
         .price {
@@ -2055,6 +2065,7 @@
                         <option value="">All Status</option>
                         <option value="Sold">Sold</option>
                         <option value="Listed">Listed</option>
+                        <option value="Unlisted">Unlisted</option>
                         <option value="Returned">Returned</option>
                         <option value="Lost/Damaged">Lost/Damaged</option>
                     </select>
@@ -2104,6 +2115,7 @@
             <div class="bulk-dropdown" id="bulkDropdown">
                 <button onclick="bulkChangeStatus('Sold')"><span class="bulk-dot" style="background:var(--emerald-500);"></span>Mark Sold</button>
                 <button onclick="bulkChangeStatus('Listed')"><span class="bulk-dot" style="background:var(--amber-500);"></span>Mark Listed</button>
+                <button onclick="bulkChangeStatus('Unlisted')"><span class="bulk-dot" style="background:var(--slate-400);"></span>Mark Unlisted</button>
                 <button onclick="bulkChangeStatus('Returned')"><span class="bulk-dot" style="background:var(--rose-500);"></span>Mark Returned</button>
                 <button onclick="bulkChangeStatus('Lost/Damaged')"><span class="bulk-dot" style="background:var(--slate-400);"></span>Lost/Damaged</button>
             </div>
@@ -2833,6 +2845,7 @@
                     <div class="form-group">
                         <label>Status</label>
                         <select class="form-input" id="status" required>
+                            <option value="Unlisted">Unlisted</option>
                             <option value="Listed">Listed</option>
                             <option value="Sold">Sold</option>
                             <option value="Returned">Returned</option>

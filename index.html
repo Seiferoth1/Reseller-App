@@ -2066,17 +2066,17 @@
                         <option value="Lost/Damaged">Lost/Damaged</option>
                     </select>
                     <div class="view-toggle">
-                        <button id="gridViewBtn" onclick="switchView('grid')" title="Gallery View">▦</button>
-                        <button id="listViewBtn" class="active" onclick="switchView('list')" title="List View">☰</button>
+                        <button id="gridViewBtn" class="active" onclick="switchView('grid')" title="Gallery View">▦</button>
+                        <button id="listViewBtn" onclick="switchView('list')" title="List View">☰</button>
                     </div>
                     <button class="btn btn-secondary" style="font-size:12px;padding:8px 14px;" onclick="toggleSelectAll()">Select All</button>
                 </div>
 
                 <!-- Gallery Grid View -->
-                <div id="galleryView" class="gallery-grid" style="display:none;"></div>
+                <div id="galleryView" class="gallery-grid" style=""></div>
 
                 <!-- Table List View -->
-                <div id="listView">
+                <div id="listView" style="display:none;">
                     <table id="inventoryTable">
                     <thead>
                         <tr>
@@ -6305,8 +6305,9 @@
             saveToStorage();
             updateTaskLinkedItems();
 
-            // Auto-create "List this item" task for newly added unlisted items
-            if (!wasEditing && !['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status)) {
+            // Auto-create "List this item" task for newly added OR edited-to-Unlisted items
+            const needsListingTask = !['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status);
+            if (needsListingTask) {
                 const alreadyHasTask = tasks.some(t =>
                     t.linkedItem === itemData.sku && t.title === 'List item for sale' && t.status !== 'completed'
                 );
@@ -6314,19 +6315,19 @@
                     tasks.push({
                         id: 't' + Date.now(),
                         title: 'List item for sale',
-                        description: 'New item added to inventory but not yet listed anywhere.',
+                        description: 'Item is in inventory but not yet listed.',
                         linkedItem: itemData.sku,
                         status: 'todo',
                         createdAt: new Date().toISOString()
                     });
                     saveToStorage();
                     renderTasks();
-                    toast('📋 Task created: List "' + itemData.name + '"', 'info');
+                    if (!wasEditing) toast('📋 Task created: List "' + itemData.name + '"', 'info');
                 }
             }
 
-            // Auto-complete "List item for sale" task when item status changes to Listed/Sold/etc
-            if (wasEditing && ['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status)) {
+            // Auto-complete "List item for sale" task when item is marked Listed/Sold/etc
+            if (['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status)) {
                 let taskCompleted = false;
                 tasks.forEach(t => {
                     if (t.linkedItem === itemData.sku && t.title === 'List item for sale' && t.status !== 'completed') {
@@ -6641,13 +6642,14 @@
 
             // Click card body → open linked item if exists, otherwise edit task
             card.onclick = function(e) {
-                if (e.target.closest('.task-actions')) return; // don't fire for edit/delete buttons
+                if (e.target.closest('.task-actions')) return;
                 if (task.linkedItem) {
                     const itemIndex = inventory.findIndex(i => i.sku === task.linkedItem);
                     if (itemIndex !== -1) {
-                        // Switch to inventory tab and open the item modal
-                        switchTab('inventory');
-                        setTimeout(() => openEditModal(itemIndex), 50);
+                        // Activate inventory tab then open item modal
+                        const inventoryTab = document.querySelector('.tab[onclick*="inventory"]');
+                        if (inventoryTab) inventoryTab.click();
+                        setTimeout(() => openEditModal(itemIndex), 80);
                         return;
                     }
                 }
@@ -6797,7 +6799,7 @@
         window.deleteTaskDirect = deleteTaskDirect;
         
         let selectedItems = new Set();
-        let currentView = 'list';
+        let currentView = 'grid';
         let sortColumn = null;
         let sortDirection = 'asc'; // 'asc' or 'desc'
         

@@ -3130,12 +3130,12 @@
         const SUPABASE_URL  = 'https://pglbroqrzchalfivhxju.supabase.co';
         const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbGJyb3FyemNoYWxmaXZoeGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzczNjksImV4cCI6MjA4Njg1MzM2OX0.txVH7ywpKEC1bGnufqF36bwqWLIiTdmNmx9ZYYN2n_Q';
 
-        // ── CONFIG — Anthropic API key stored in localStorage (never in code) ──
-        function getAnthropicKey() {
-            return localStorage.getItem('reseller_anthropic_key') || '';
+        // ── CONFIG — Groq API key stored in localStorage (never in code) ──
+        function getGroqKey() {
+            return localStorage.getItem('reseller_groq_key') || '';
         }
-        function setAnthropicKey(key) {
-            localStorage.setItem('reseller_anthropic_key', key.trim());
+        function setGroqKey(key) {
+            localStorage.setItem('reseller_groq_key', key.trim());
         }
 
         let sbClient = null;
@@ -7028,11 +7028,11 @@
         let aiScanResult = null;
 
         function openAIScanModal() {
-            if (!getAnthropicKey()) {
-                const key = prompt('Enter your Anthropic API key to enable AI scanning.\n\nGet one free at console.anthropic.com → API Keys\n\nThis is saved only on this device — never uploaded anywhere.');
+            if (!getGroqKey()) {
+                const key = prompt('Enter your Groq API key to enable AI scanning.\n\nGet one free at console.groq.com → API Keys\n\nThis is saved only on this device — never uploaded anywhere.');
                 if (!key || !key.trim()) return;
-                setAnthropicKey(key);
-                toast('API key saved to this device ✓', 'success');
+                setGroqKey(key);
+                toast('Groq API key saved to this device ✓', 'success');
             }
             aiScanImageDataUrl = null;
             aiScanResult = null;
@@ -7084,12 +7084,15 @@
             document.getElementById('aiScanStep3').style.display = 'none';
             document.getElementById('aiScanError').style.display = 'none';
 
-            // Strip the data URL prefix to get raw base64
-            const base64Data = aiScanImageDataUrl.split(',')[1];
-            const mediaType = aiScanImageDataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
-
+            // Groq vision accepts the full base64 data URL directly as image_url
             const VALID_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            const safeMediaType = VALID_TYPES.includes(mediaType) ? mediaType : 'image/jpeg';
+            const mediaType = aiScanImageDataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
+            if (!VALID_TYPES.includes(mediaType)) {
+                document.getElementById('aiScanStep2').style.display = 'none';
+                document.getElementById('aiScanError').style.display = 'block';
+                document.getElementById('aiScanErrorMsg').textContent = 'Unsupported image type. Please use JPG, PNG, or WebP.';
+                return;
+            }
 
             const categoryList = [
                 'Accessories','Automotive','Baby','Baby Clothing','Beauty & Skincare','Books',
@@ -7114,21 +7117,22 @@ Required JSON format:
 For prices, estimate realistic resale values based on what you know about this type of item. If you cannot estimate, use null.`;
 
             try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-api-key': getAnthropicKey(),
-                        'anthropic-version': '2023-06-01',
-                        'anthropic-dangerous-direct-browser-access': 'true'
+                        'Authorization': 'Bearer ' + getGroqKey()
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-5',
+                        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
                         max_tokens: 512,
                         messages: [{
                             role: 'user',
                             content: [
-                                { type: 'image', source: { type: 'base64', media_type: safeMediaType, data: base64Data } },
+                                {
+                                    type: 'image_url',
+                                    image_url: { url: aiScanImageDataUrl }
+                                },
                                 { type: 'text', text: prompt }
                             ]
                         }]
@@ -7141,7 +7145,7 @@ For prices, estimate realistic resale values based on what you know about this t
                 }
 
                 const data = await response.json();
-                const rawText = data.content?.[0]?.text || '';
+                const rawText = data.choices?.[0]?.message?.content || '';
 
                 // Parse JSON — strip any accidental markdown fences
                 const clean = rawText.replace(/```json|```/g, '').trim();

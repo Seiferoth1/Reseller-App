@@ -3583,21 +3583,30 @@
 
         function startPolling() {
             stopPolling();
-            _pollInterval = setInterval(async function() {
-                if (!syncEnabled || !sbClient || !currentUser) return;
-                try {
-                    const { data } = await sbClient
-                        .from('reseller_data')
-                        .select('updated_at')
-                        .eq('user_id', currentUser.id)
-                        .single();
-                    if (data?.updated_at && data.updated_at !== _lastCloudTs) {
-                        _lastCloudTs = data.updated_at;
-                        await loadFromCloud();
-                    }
-                } catch(e) {}
-            }, 8000);
+            _pollInterval = setInterval(pollForChanges, 5000);
         }
+
+        async function pollForChanges() {
+            if (!syncEnabled || !sbClient || !currentUser) return;
+            try {
+                const { data } = await sbClient
+                    .from('reseller_data')
+                    .select('updated_at')
+                    .eq('user_id', currentUser.id)
+                    .single();
+                if (data?.updated_at && data.updated_at !== _lastCloudTs) {
+                    _lastCloudTs = data.updated_at;
+                    await loadFromCloud();
+                }
+            } catch(e) {}
+        }
+
+        // Immediately re-sync when tab becomes visible again (handles mobile backgrounding)
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible' && syncEnabled && sbClient && currentUser) {
+                pollForChanges();
+            }
+        });
 
         function stopPolling() {
             if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }

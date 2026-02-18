@@ -3343,6 +3343,7 @@
                     updateAuthUI();
                     await loadFromCloud();
                     init();
+                    startRealtimeSync();
                     return;
                 }
             } catch(e) {
@@ -3560,9 +3561,56 @@
         function saveToStorage() {
             // Immediate localStorage save
             saveToLocalStorage();
+            // Broadcast to other tabs on same device instantly
+            if (window._syncChannel) {
+                try {
+                    const cleanInv = JSON.parse(JSON.stringify(inventory)).map(item => ({...item, photos: item.photos || []}));
+                    window._syncChannel.postMessage({
+                        type: 'data_update',
+                        inventory: cleanInv,
+                        platforms: JSON.parse(JSON.stringify(platforms)),
+                        tasks: JSON.parse(JSON.stringify(tasks)),
+                        expenses: JSON.parse(JSON.stringify(expenses)),
+                        mileage: JSON.parse(JSON.stringify(mileageTrips)),
+                        ts: Date.now()
+                    });
+                } catch(e) {}
+            }
             // Debounced cloud sync (300ms)
             debouncedSync();
         }
+
+        // ── BroadcastChannel: instant same-device cross-tab sync ───────
+        (function() {
+            try {
+                window._syncChannel = new BroadcastChannel('reseller_pro_sync');
+                window._syncChannel.onmessage = function(e) {
+                    if (e.data?.type !== 'data_update') return;
+                    // Apply incoming data, preserving local photos (not sent over channel)
+                    const localPhotoMap = {};
+                    inventory.forEach(item => {
+                        if (item.photos?.length) localPhotoMap[item.sku] = item.photos;
+                    });
+                    inventory = (e.data.inventory || []).map(item => ({
+                        ...item,
+                        photos: localPhotoMap[item.sku] || item.photos || [],
+                        dateSold: item.dateSold ? new Date(item.dateSold) : null
+                    }));
+                    platforms = e.data.platforms || platforms;
+                    tasks = e.data.tasks || tasks;
+                    expenses = e.data.expenses || expenses;
+                    mileageTrips = e.data.mileage || mileageTrips;
+                    // Re-render everything silently
+                    renderInventory();
+                    if (currentView === 'grid') renderGallery();
+                    updateStats();
+                    renderTasks();
+                    updateTaskLinkedItems();
+                };
+            } catch(e) {
+                window._syncChannel = null;
+            }
+        })();
 
         const stored = loadFromStorage();
         
@@ -6056,6 +6104,7 @@
             
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
+            window._pushTabState && _pushTabState(tabName);
         }
 
         // Item Modal Functions
@@ -6345,7 +6394,11 @@
 
         async function deleteItem() {
             if (editingIndex !== null && await confirmAction('Delete this item?')) {
+                const deletedSku = inventory[editingIndex].sku;
                 inventory.splice(editingIndex, 1);
+                // Remove any tasks linked to this item
+                const before = tasks.length;
+                tasks = tasks.filter(t => t.linkedItem !== deletedSku);
                 renderInventory();
                 updateStats();
                 renderWeeklyAnalytics();
@@ -6353,6 +6406,7 @@
                 renderCategoriesAnalytics();
                 saveToStorage();
                 updateTaskLinkedItems();
+                renderTasks();
                 closeModal();
                 toast('Item deleted');
             }
@@ -7405,22 +7459,41 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
             };
 
             window._pushModalState = function(id) {
-                history.pushState({ modal: id }, '');
+                const currentTab = history.state?.tab || 'inventory';
+                history.pushState({ modal: id, prevTab: currentTab }, '');
             };
+
+            // Track active tab so back button can restore it
+            window._pushTabState = function(tabName) {
+                history.replaceState({ tab: tabName }, '');
+            };
+
+            // On page load, record the default tab in history
+            history.replaceState({ tab: 'inventory' }, '');
 
             window.addEventListener('popstate', function(e) {
                 const id = e.state?.modal;
                 if (id && CLOSERS[id]) {
+                    // Close the modal, then re-push the tab state so further back stays on dashboard
                     CLOSERS[id]();
-                } else {
-                    // Unknown state — close any visible modal
-                    for (const [mid, fn] of Object.entries(CLOSERS)) {
-                        const el = document.getElementById(mid);
-                        if (!el) continue;
-                        const open = el.classList.contains('active') || el.style.display === 'flex';
-                        if (open) { fn(); return; }
+                    history.replaceState({ tab: e.state?.prevTab || 'inventory' }, '');
+                    return;
+                }
+                // No modal — check if any are open and close the topmost
+                for (const [mid, fn] of Object.entries(CLOSERS)) {
+                    const el = document.getElementById(mid);
+                    if (!el) continue;
+                    const open = el.classList.contains('active') || el.style.display === 'flex';
+                    if (open) {
+                        fn();
+                        history.replaceState({ tab: e.state?.tab || 'inventory' }, '');
+                        return;
                     }
                 }
+                // Nothing open — restore the tab that was active
+                const tab = e.state?.tab || 'inventory';
+                const tabBtn = document.querySelector(`.tab[onclick*="'${tab}'"]`);
+                if (tabBtn) tabBtn.click();
             });
         })();
         init();
@@ -7436,15 +7509,41 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
                         updateAuthUI();
                         await loadFromCloud();
                         init();
+                        startRealtimeSync();
                     } else if (event === 'SIGNED_OUT') {
                         currentUser = null;
                         syncEnabled = false;
                         updateAuthUI();
                         setSyncStatus('offline', 'Local Only');
+                        stopRealtimeSync();
                     }
                 });
             }
         })();
+
+        let _realtimeChannel = null;
+        function startRealtimeSync() {
+            if (!sbClient || !currentUser) return;
+            stopRealtimeSync();
+            _realtimeChannel = sbClient
+                .channel('reseller_data_changes')
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'reseller_data',
+                    filter: `user_id=eq.${currentUser.id}`
+                }, async (payload) => {
+                    // Another device pushed an update — pull fresh data
+                    await loadFromCloud();
+                })
+                .subscribe();
+        }
+        function stopRealtimeSync() {
+            if (_realtimeChannel) {
+                try { sbClient.removeChannel(_realtimeChannel); } catch(e) {}
+                _realtimeChannel = null;
+            }
+        }
 
         document.getElementById('itemModal').addEventListener('click', function(e) {
             if (e.target === this) closeModal();

@@ -2632,7 +2632,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="manualTripModalTitle">Log Trip</div>
-                <button class="close-btn" onclick="closeManualTripModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('manualTripModal'):closeManualTripModal()">&times;</button>
             </div>
             <form id="manualTripForm" onsubmit="saveManualTrip(event)">
                 <div class="form-row">
@@ -2664,7 +2664,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="expenseModalTitle">Add Expense</div>
-                <button class="close-btn" onclick="closeExpenseModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('expenseModal'):closeExpenseModal()">&times;</button>
             </div>
             <form id="expenseForm" onsubmit="saveExpense(event)">
                 <div class="form-row">
@@ -2723,7 +2723,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="modalTitle">Add New Item</div>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('itemModal'):closeModal()">&times;</button>
             </div>
             <form id="itemForm" onsubmit="saveItem(event)">
                 <div class="form-group">
@@ -2863,7 +2863,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="platformModalTitle">Add New Platform</div>
-                <button class="close-btn" onclick="closePlatformModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('platformModal'):closePlatformModal()">&times;</button>
             </div>
             <form id="platformForm" onsubmit="savePlatform(event)">
                 <div class="form-group">
@@ -2893,7 +2893,7 @@
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <div class="modal-title">📦 Print Labels & Barcodes</div>
-                <button class="close-btn" onclick="closeBarcodeModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('barcodeModal'):closeBarcodeModal()">&times;</button>
             </div>
             
             <div style="margin-bottom: 25px;">
@@ -2930,7 +2930,7 @@
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
                 <div class="modal-title" id="photoModalTitle">Item Photos</div>
-                <button class="close-btn" onclick="closePhotoModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('photoModal'):closePhotoModal()">&times;</button>
             </div>
             
             <div style="position: relative;">
@@ -2949,7 +2949,7 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <div class="modal-title" id="taskModalTitle">Add New Task</div>
-                <button class="close-btn" onclick="closeTaskModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('taskModal'):closeTaskModal()">&times;</button>
             </div>
             <form id="taskForm" onsubmit="saveTask(event)">
                 <div class="form-group">
@@ -2987,7 +2987,7 @@
         <div class="scan-card" style="max-width:640px;">
             <div class="scan-header">
                 <h3>📥 Import CSV</h3>
-                <button class="close-btn" onclick="closeImportModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('importOverlay'):closeImportModal()">&times;</button>
             </div>
             <div class="scan-body">
                 <div class="scan-status" id="importStatus">Parsing your file…</div>
@@ -3014,7 +3014,7 @@
         <div class="scan-card">
             <div class="scan-header">
                 <h3>📷 Scan Barcode / QR Code</h3>
-                <button class="close-btn" onclick="closeScanModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('scanOverlay'):closeScanModal()">&times;</button>
             </div>
             <div class="scan-body">
                 <div id="scanReader"></div>
@@ -3495,6 +3495,16 @@
                     // Also update localStorage as cache
                     saveToLocalStorage();
                     setSyncStatus('synced', 'Synced ✓');
+
+                    // Re-render everything so UI reflects latest data
+                    renderInventory();
+                    if (typeof currentView !== 'undefined' && currentView === 'grid') renderGallery();
+                    if (typeof updateStats === 'function') updateStats();
+                    if (typeof renderTasks === 'function') renderTasks();
+                    if (typeof updateTaskLinkedItems === 'function') updateTaskLinkedItems();
+                    if (typeof renderPlatforms === 'function') renderPlatforms();
+                    if (typeof renderWeeklyAnalytics === 'function') renderWeeklyAnalytics();
+                    if (typeof renderMonthlyAnalytics === 'function') renderMonthlyAnalytics();
                 } else {
                     // No cloud data yet — push current localStorage data up
                     await syncData();
@@ -3566,29 +3576,6 @@
             try { localStorage.setItem('reseller_pro_update', Date.now()); } catch(e) {}
             debouncedSync();
         }
-
-        // ── Cross-tab sync: storage event fires in OTHER tabs instantly ─
-        window.addEventListener('storage', function(e) {
-            if (e.key !== 'reseller_pro_update') return;
-            // Another tab on this device just saved — reload from localStorage
-            const fresh = loadFromStorage();
-            const localPhotoMap = {};
-            inventory.forEach(item => { if (item.photos?.length) localPhotoMap[item.sku] = item.photos; });
-            inventory = (fresh.inventory || []).map(item => ({
-                ...item,
-                photos: localPhotoMap[item.sku] || item.photos || [],
-                dateSold: item.dateSold ? new Date(item.dateSold) : null
-            }));
-            platforms = fresh.platforms || platforms;
-            tasks = fresh.tasks || tasks;
-            expenses = fresh.expenses || expenses;
-            mileageTrips = fresh.mileage || mileageTrips;
-            renderInventory();
-            if (currentView === 'grid') renderGallery();
-            updateStats();
-            renderTasks();
-            updateTaskLinkedItems();
-        });
 
         // ── Cross-device polling: pull from cloud every 8s when signed in ─
         let _pollInterval = null;
@@ -7175,7 +7162,7 @@
         window.addEventListener('load', function() {
             const aiOverlay = document.getElementById('aiScanOverlay');
             if (aiOverlay) aiOverlay.addEventListener('click', function(e) {
-                if (e.target === this) closeAIScanModal();
+                if (e.target === this) window._closeModal ? window._closeModal('aiScanOverlay') : closeAIScanModal();
             });
         });
 
@@ -7467,39 +7454,71 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
                 history.pushState({ modal: id, prevTab: currentTab }, '');
             };
 
-            // Track active tab so back button can restore it
             window._pushTabState = function(tabName) {
                 history.replaceState({ tab: tabName }, '');
             };
 
-            // On page load, record the default tab in history
+            // Wrap every close function: if history shows this modal is open, pop the state first
+            window._closeModal = function(id) {
+                if (history.state?.modal === id) {
+                    // popstate will handle the actual close call
+                    history.back();
+                } else {
+                    // Modal was closed by X/backdrop — just pop if we're on a stale modal state
+                    if (history.state?.modal) history.back();
+                    CLOSERS[id] && CLOSERS[id]();
+                }
+            };
+
+            // On page load, set initial tab state
             history.replaceState({ tab: 'inventory' }, '');
 
             window.addEventListener('popstate', function(e) {
                 const id = e.state?.modal;
                 if (id && CLOSERS[id]) {
-                    // Close the modal, then re-push the tab state so further back stays on dashboard
                     CLOSERS[id]();
-                    history.replaceState({ tab: e.state?.prevTab || 'inventory' }, '');
+                    // After closing, restore the tab that was active when modal opened
+                    const prevTab = e.state?.prevTab || 'inventory';
+                    history.replaceState({ tab: prevTab }, '');
+                    const tabBtn = document.querySelector(`.tab[onclick*="'${prevTab}'"]`);
+                    if (tabBtn && !document.getElementById(prevTab)?.classList.contains('active')) {
+                        tabBtn.click();
+                    }
                     return;
                 }
-                // No modal — check if any are open and close the topmost
+                // Fallback: close any open modal
                 for (const [mid, fn] of Object.entries(CLOSERS)) {
                     const el = document.getElementById(mid);
                     if (!el) continue;
-                    const open = el.classList.contains('active') || el.style.display === 'flex';
-                    if (open) {
+                    if (el.classList.contains('active') || el.style.display === 'flex') {
                         fn();
-                        history.replaceState({ tab: e.state?.tab || 'inventory' }, '');
                         return;
                     }
                 }
-                // Nothing open — restore the tab that was active
-                const tab = e.state?.tab || 'inventory';
-                const tabBtn = document.querySelector(`.tab[onclick*="'${tab}'"]`);
-                if (tabBtn) tabBtn.click();
             });
         })();
+
+        // ── Cross-tab sync: storage event — registered after variables exist ─
+        window.addEventListener('storage', function(e) {
+            if (e.key !== 'reseller_pro_update') return;
+            const fresh = loadFromStorage();
+            const localPhotoMap = {};
+            inventory.forEach(item => { if (item.photos?.length) localPhotoMap[item.sku] = item.photos; });
+            inventory = (fresh.inventory || []).map(item => ({
+                ...item,
+                photos: localPhotoMap[item.sku] || item.photos || [],
+                dateSold: item.dateSold ? new Date(item.dateSold) : null
+            }));
+            platforms = fresh.platforms || platforms;
+            tasks = fresh.tasks || tasks;
+            expenses = fresh.expenses || expenses;
+            mileageTrips = fresh.mileage || mileageTrips;
+            renderInventory();
+            if (currentView === 'grid') renderGallery();
+            updateStats();
+            renderTasks();
+            updateTaskLinkedItems();
+        });
         init();
         initGalleryDropListeners();
         initListDropListeners();
@@ -7552,27 +7571,27 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
         }
 
         document.getElementById('itemModal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
+            if (e.target === this) window._closeModal ? window._closeModal('itemModal') : closeModal();
         });
 
         document.getElementById('platformModal').addEventListener('click', function(e) {
-            if (e.target === this) closePlatformModal();
+            if (e.target === this) window._closeModal ? window._closeModal('platformModal') : closePlatformModal();
         });
 
         document.getElementById('barcodeModal').addEventListener('click', function(e) {
-            if (e.target === this) closeBarcodeModal();
+            if (e.target === this) window._closeModal ? window._closeModal('barcodeModal') : closeBarcodeModal();
         });
 
         document.getElementById('photoModal').addEventListener('click', function(e) {
-            if (e.target === this) closePhotoModal();
+            if (e.target === this) window._closeModal ? window._closeModal('photoModal') : closePhotoModal();
         });
 
         document.getElementById('taskModal').addEventListener('click', function(e) {
-            if (e.target === this) closeTaskModal();
+            if (e.target === this) window._closeModal ? window._closeModal('taskModal') : closeTaskModal();
         });
 
         document.getElementById('loginOverlay').addEventListener('click', function(e) {
-            if (e.target === this) skipLogin();
+            if (e.target === this) window._closeModal ? window._closeModal('loginOverlay') : skipLogin();
         });
 
         document.getElementById('scanBtn').addEventListener('click', function() {
@@ -7580,7 +7599,7 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
         });
 
         document.getElementById('scanOverlay').addEventListener('click', function(e) {
-            if (e.target === this) closeScanModal();
+            if (e.target === this) window._closeModal ? window._closeModal('scanOverlay') : closeScanModal();
         });
 
         document.getElementById('importBtn').addEventListener('click', function() {
@@ -7656,7 +7675,7 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
         <div class="scan-card" style="max-width:480px;">
             <div class="scan-header">
                 <h3>🤖 AI Item Scanner</h3>
-                <button class="close-btn" onclick="closeAIScanModal()">&times;</button>
+                <button class="close-btn" onclick="window._closeModal?window._closeModal('aiScanOverlay'):closeAIScanModal()">&times;</button>
             </div>
             <div class="scan-body">
                 <!-- Step 1: capture -->

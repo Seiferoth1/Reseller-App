@@ -6289,12 +6289,47 @@
             renderCategoriesAnalytics();
             saveToStorage();
             updateTaskLinkedItems();
-            
+
+            // Auto-create "List this item" task for newly added unlisted items
+            const isNewItem = editingIndex === 0;
+            const needsListing = !['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status);
+            if (isNewItem && needsListing) {
+                const alreadyHasTask = tasks.some(t =>
+                    t.linkedItem === itemData.sku && t.title === 'List item for sale' && t.status !== 'completed'
+                );
+                if (!alreadyHasTask) {
+                    tasks.push({
+                        id: 't' + Date.now(),
+                        title: 'List item for sale',
+                        description: 'New item added to inventory but not yet listed anywhere.',
+                        linkedItem: itemData.sku,
+                        status: 'todo',
+                        createdAt: new Date().toISOString()
+                    });
+                    saveToStorage();
+                    renderTasks();
+                    toast('📋 Task created: List "' + itemData.name + '"', 'info');
+                }
+            }
+
             document.getElementById('barcodeBtn').style.display = 'block';
-            
+
             const wasEditing = editingIndex !== null && editingIndex !== 0;
+
+            // Auto-complete "List item for sale" task when item status changes to Listed/Sold/etc
+            if (wasEditing && ['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status)) {
+                let taskCompleted = false;
+                tasks.forEach(t => {
+                    if (t.linkedItem === itemData.sku && t.title === 'List item for sale' && t.status !== 'completed') {
+                        t.status = 'completed';
+                        taskCompleted = true;
+                    }
+                });
+                if (taskCompleted) { saveToStorage(); renderTasks(); }
+            }
+
             toast(wasEditing ? 'Item saved!' : 'Item added!');
-            
+
             // Clear pending photos
             pendingPhotos = [];
         }

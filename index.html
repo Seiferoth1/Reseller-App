@@ -1960,13 +1960,6 @@
                 Reseller Pro
             </h1>
             <div class="header-actions">
-                <div class="sync-indicator offline" id="syncIndicator" title="Sync status">
-                    <span class="sync-dot"></span>
-                    <span id="syncLabel">Offline</span>
-                </div>
-                <div class="auth-bar" id="authBar">
-                    <button class="auth-btn" id="authBtn" data-action="login">Sign In</button>
-                </div>
                 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">
                     <span class="theme-icon" id="themeIcon">☀️</span>
                 </button>
@@ -3199,6 +3192,7 @@
         // ── Auth UI ───────────────────────────────────────────────────
         function updateAuthUI() {
             const bar = document.getElementById('authBar');
+            if (!bar) return; // auth bar removed from UI — silently skip
             if (currentUser) {
                 const email = currentUser.email || '';
                 const short = email.split('@')[0];
@@ -3212,7 +3206,8 @@
         }
 
         // Event delegation for auth bar (handles dynamic buttons)
-        document.getElementById('authBar').addEventListener('click', function(e) {
+        const _authBar = document.getElementById('authBar');
+        if (_authBar) _authBar.addEventListener('click', function(e) {
             const btn = e.target.closest('[data-action]');
             if (!btn) return;
             if (btn.dataset.action === 'login') showLoginModal();
@@ -3221,7 +3216,7 @@
 
         function showLoginModal() {
             authMode = 'login';
-            document.getElementById('loginOverlay').style.display = 'flex';
+            document.getElementById('loginOverlay').style.display = 'flex'; window._pushModalState && _pushModalState('loginOverlay');
             document.getElementById('loginTitle').textContent = 'Welcome Back';
             document.getElementById('loginSubtitle').textContent = 'Sign in to sync your data across devices';
             document.getElementById('authSubmitBtn').textContent = 'Sign In';
@@ -3979,7 +3974,7 @@
             document.getElementById('labelCategory').textContent = currentBarcodeItem.category;
             
             // Show modal and generate barcode
-            document.getElementById('barcodeModal').classList.add('active');
+            document.getElementById('barcodeModal').classList.add('active'); window._pushModalState && _pushModalState('barcodeModal');
             renderBarcode();
         }
         window.generateBarcode = generateBarcode;
@@ -4281,7 +4276,7 @@
             // Default to today
             const today = new Date();
             document.getElementById('expenseDate').value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-            document.getElementById('expenseModal').classList.add('active');
+            document.getElementById('expenseModal').classList.add('active'); window._pushModalState && _pushModalState('expenseModal');
         }
         window.openExpenseModal = openExpenseModal;
 
@@ -4299,7 +4294,7 @@
             document.getElementById('expenseRecurring').value = exp.recurring || '';
             document.getElementById('expenseNotes').value = exp.notes || '';
             
-            document.getElementById('expenseModal').classList.add('active');
+            document.getElementById('expenseModal').classList.add('active'); window._pushModalState && _pushModalState('expenseModal');
         }
         window.openEditExpenseModal = openEditExpenseModal;
 
@@ -4648,7 +4643,7 @@
             const today = new Date();
             document.getElementById('mileageQuickDate').value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
             document.getElementById('mileageQuickCalc').style.display = 'none';
-            document.getElementById('manualTripModal').classList.add('active');
+            document.getElementById('manualTripModal').classList.add('active'); window._pushModalState && _pushModalState('manualTripModal');
         }
         window.openManualTripModal = openManualTripModal;
 
@@ -4781,7 +4776,7 @@
         let lastScanResult = null; // stores the looked-up product data
 
         function openScanModal() {
-            document.getElementById('scanOverlay').style.display = 'flex';
+            document.getElementById('scanOverlay').style.display = 'flex'; window._pushModalState && _pushModalState('scanOverlay');
             document.getElementById('scanStatus').textContent = 'Starting camera…';
             document.getElementById('scanStatus').className = 'scan-status loading';
             document.getElementById('scanResultPreview').classList.remove('visible');
@@ -5144,7 +5139,7 @@
         }
 
         function openImportModal(file) {
-            document.getElementById('importOverlay').style.display = 'flex';
+            document.getElementById('importOverlay').style.display = 'flex'; window._pushModalState && _pushModalState('importOverlay');
             document.getElementById('importStatus').textContent = 'Parsing your file…';
             document.getElementById('importStatus').className = 'scan-status loading';
             document.getElementById('importMappingArea').style.display = 'none';
@@ -6072,6 +6067,7 @@
             document.getElementById('itemForm').reset();
             document.getElementById('taxReserve').value = 'Auto-calculated';
             document.getElementById('itemModal').classList.add('active');
+            window._pushModalState && _pushModalState('itemModal');
             
             // Init drag-drop zone
             setTimeout(initPhotoDropZone, 50);
@@ -6188,6 +6184,7 @@
             }
             
             document.getElementById('itemModal').classList.add('active');
+            window._pushModalState && _pushModalState('itemModal');
             setupTaxCalculation();
 
             // Load existing photos into pendingPhotos for preview
@@ -6288,13 +6285,15 @@
                 itemData.photos = inventory[editingIndex].photos;
             }
 
+            const wasEditing = editingIndex !== null; // true if we were editing an existing item
+
             if (editingIndex !== null) {
                 inventory[editingIndex] = itemData;
             } else {
                 inventory.unshift(itemData);
                 editingIndex = 0;
             }
-            
+
             renderInventory();
             updateStats();
             renderWeeklyAnalytics();
@@ -6304,9 +6303,7 @@
             updateTaskLinkedItems();
 
             // Auto-create "List this item" task for newly added unlisted items
-            const isNewItem = editingIndex === 0;
-            const needsListing = !['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status);
-            if (isNewItem && needsListing) {
+            if (!wasEditing && !['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status)) {
                 const alreadyHasTask = tasks.some(t =>
                     t.linkedItem === itemData.sku && t.title === 'List item for sale' && t.status !== 'completed'
                 );
@@ -6325,10 +6322,6 @@
                 }
             }
 
-            document.getElementById('barcodeBtn').style.display = 'block';
-
-            const wasEditing = editingIndex !== null && editingIndex !== 0;
-
             // Auto-complete "List item for sale" task when item status changes to Listed/Sold/etc
             if (wasEditing && ['Listed','Sold','Returned','Lost/Damaged'].includes(itemData.status)) {
                 let taskCompleted = false;
@@ -6342,10 +6335,8 @@
             }
 
             toast(wasEditing ? 'Item saved!' : 'Item added!');
-
-            // Clear pending photos
             pendingPhotos = [];
-        }
+            closeModal();
 
         async function deleteItem() {
             if (editingIndex !== null && await confirmAction('Delete this item?')) {
@@ -6369,7 +6360,7 @@
             document.getElementById('platformSubmitBtn').textContent = 'Add Platform';
             document.getElementById('platformDeleteBtn').style.display = 'none';
             document.getElementById('platformForm').reset();
-            document.getElementById('platformModal').classList.add('active');
+            document.getElementById('platformModal').classList.add('active'); window._pushModalState && _pushModalState('platformModal');
         }
 
         function openEditPlatformModal(index) {
@@ -6384,7 +6375,7 @@
             document.getElementById('platformFeePercent').value = platform.feePercent;
             document.getElementById('platformFixedFee').value = platform.fixedFee;
             
-            document.getElementById('platformModal').classList.add('active');
+            document.getElementById('platformModal').classList.add('active'); window._pushModalState && _pushModalState('platformModal');
         }
 
         function closePlatformModal() {
@@ -6515,7 +6506,7 @@
             
             document.getElementById('photoModalTitle').textContent = currentPhotoItem.name;
             showPhoto(0);
-            document.getElementById('photoModal').classList.add('active');
+            document.getElementById('photoModal').classList.add('active'); window._pushModalState && _pushModalState('photoModal');
         }
 
         function showPhoto(index) {
@@ -6726,7 +6717,7 @@
             document.getElementById('taskDeleteBtn').style.display = 'none';
             document.getElementById('taskForm').reset();
             updateTaskLinkedItems();
-            document.getElementById('taskModal').classList.add('active');
+            document.getElementById('taskModal').classList.add('active'); window._pushModalState && _pushModalState('taskModal');
         }
         window.openTaskModal = openTaskModal;
 
@@ -6745,7 +6736,7 @@
             updateTaskLinkedItems();
             document.getElementById('taskLinkedItem').value = task.linkedItem || '';
             
-            document.getElementById('taskModal').classList.add('active');
+            document.getElementById('taskModal').classList.add('active'); window._pushModalState && _pushModalState('taskModal');
         }
         window.openEditTaskModal = openEditTaskModal;
 
@@ -7107,7 +7098,7 @@
             document.getElementById('aiScanPreviewBox').style.display = 'none';
             document.getElementById('aiScanAnalyzeRow').style.display = 'none';
             document.getElementById('aiScanGalleryInput').value = '';
-            document.getElementById('aiScanOverlay').style.display = 'flex';
+            document.getElementById('aiScanOverlay').style.display = 'flex'; window._pushModalState && _pushModalState('aiScanOverlay');
         }
         window.openAIScanModal = openAIScanModal;
 
@@ -7392,54 +7383,36 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
         // ── Boot: render from localStorage instantly, then check cloud ──
 
         // ── Back Button Modal Manager ──────────────────────────────────
-        // Pushes a history entry when any modal opens so the back button
-        // closes the modal instead of navigating away.
         (function() {
-            // Map of modal IDs → their close functions
-            const MODAL_CLOSERS = [
-                { id: 'itemModal',        close: () => closeModal(),            check: el => el.classList.contains('active') },
-                { id: 'scanOverlay',      close: () => closeScanModal(),        check: el => el.style.display === 'flex' },
-                { id: 'aiScanOverlay',    close: () => closeAIScanModal(),      check: el => el.style.display === 'flex' },
-                { id: 'importOverlay',    close: () => closeImportModal(),      check: el => el.style.display === 'flex' },
-                { id: 'barcodeModal',     close: () => closeBarcodeModal(),     check: el => el.classList.contains('active') },
-                { id: 'expenseModal',     close: () => closeExpenseModal(),     check: el => el.classList.contains('active') },
-                { id: 'platformModal',    close: () => closePlatformModal(),    check: el => el.classList.contains('active') },
-                { id: 'taskModal',        close: () => closeTaskModal(),        check: el => el.classList.contains('active') },
-                { id: 'manualTripModal',  close: () => closeManualTripModal(),  check: el => el.classList.contains('active') },
-                { id: 'photoModal',       close: () => closePhotoModal(),       check: el => el.classList.contains('active') },
-                { id: 'loginOverlay',     close: () => skipLogin(),             check: el => el.style.display === 'flex' },
-            ];
+            const CLOSERS = {
+                'itemModal':       () => closeModal(),
+                'scanOverlay':     () => closeScanModal(),
+                'aiScanOverlay':   () => closeAIScanModal(),
+                'importOverlay':   () => closeImportModal(),
+                'barcodeModal':    () => closeBarcodeModal(),
+                'expenseModal':    () => closeExpenseModal(),
+                'platformModal':   () => closePlatformModal(),
+                'taskModal':       () => closeTaskModal(),
+                'manualTripModal': () => closeManualTripModal(),
+                'photoModal':      () => closePhotoModal(),
+                'loginOverlay':    () => skipLogin(),
+            };
 
-            function anyModalOpen() {
-                return MODAL_CLOSERS.some(m => {
-                    const el = document.getElementById(m.id);
-                    return el && m.check(el);
-                });
-            }
-
-            function closeTopModal() {
-                for (const m of MODAL_CLOSERS) {
-                    const el = document.getElementById(m.id);
-                    if (el && m.check(el)) { m.close(); return true; }
-                }
-                return false;
-            }
-
-            // Push a state whenever a modal opens so the back button has somewhere to go
-            const _origAdd = Element.prototype.classList.add;
-            // Use a MutationObserver on body to detect modal opens instead of patching classList
-            const observer = new MutationObserver(() => {
-                if (anyModalOpen() && history.state?.modal !== true) {
-                    history.pushState({ modal: true }, '');
-                }
-            });
-            observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+            window._pushModalState = function(id) {
+                history.pushState({ modal: id }, '');
+            };
 
             window.addEventListener('popstate', function(e) {
-                if (closeTopModal()) {
-                    // Replaced the state — if another modal is still open, push again
-                    if (anyModalOpen()) {
-                        history.pushState({ modal: true }, '');
+                const id = e.state?.modal;
+                if (id && CLOSERS[id]) {
+                    CLOSERS[id]();
+                } else {
+                    // Unknown state — close any visible modal
+                    for (const [mid, fn] of Object.entries(CLOSERS)) {
+                        const el = document.getElementById(mid);
+                        if (!el) continue;
+                        const open = el.classList.contains('active') || el.style.display === 'flex';
+                        if (open) { fn(); return; }
                     }
                 }
             });

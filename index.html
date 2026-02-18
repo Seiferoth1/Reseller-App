@@ -1960,6 +1960,9 @@
                 Reseller Pro
             </h1>
             <div class="header-actions">
+                <div class="auth-bar" id="authBar">
+                    <button class="auth-btn" id="authBtn" data-action="login">Sign In</button>
+                </div>
                 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">
                     <span class="theme-icon" id="themeIcon">☀️</span>
                 </button>
@@ -6337,6 +6340,7 @@
             toast(wasEditing ? 'Item saved!' : 'Item added!');
             pendingPhotos = [];
             closeModal();
+        }
 
         async function deleteItem() {
             if (editingIndex !== null && await confirmAction('Delete this item?')) {

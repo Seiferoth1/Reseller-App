@@ -6633,22 +6633,38 @@
             card.className = 'task-card';
             card.draggable = true;
             card.dataset.index = index;
-            
+            card.style.cursor = 'pointer';
+
             card.ondragstart = (e) => {
                 e.dataTransfer.setData('text/plain', index);
                 card.classList.add('task-dragging');
             };
-            
+
             card.ondragend = () => {
                 card.classList.remove('task-dragging');
             };
-            
+
+            // Click card body → open linked item if exists, otherwise edit task
+            card.onclick = function(e) {
+                if (e.target.closest('.task-actions')) return; // don't fire for edit/delete buttons
+                if (task.linkedItem) {
+                    const itemIndex = inventory.findIndex(i => i.sku === task.linkedItem);
+                    if (itemIndex !== -1) {
+                        // Switch to inventory tab and open the item modal
+                        switchTab('inventory');
+                        setTimeout(() => openEditModal(itemIndex), 50);
+                        return;
+                    }
+                }
+                openEditTaskModal(index);
+            };
+
             let linkedItemHTML = '';
             if (task.linkedItem) {
                 const item = inventory.find(i => i.sku === task.linkedItem);
                 if (item) {
-                    const photoHTML = item.photos && item.photos.length > 0 
-                        ? `<img src="${item.photos[0]}" alt="${item.name}">` 
+                    const photoHTML = item.photos && item.photos.length > 0
+                        ? `<img src="${item.photos[0]}" alt="${item.name}">`
                         : '📦';
                     linkedItemHTML = `
                         <div class="task-linked-item">
@@ -6658,7 +6674,7 @@
                     `;
                 }
             }
-            
+
             card.innerHTML = `
                 <div class="task-card-header">
                     <div class="task-title">${task.title}</div>
@@ -6670,7 +6686,7 @@
                 ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
                 ${linkedItemHTML}
             `;
-            
+
             return card;
         }
 
@@ -7374,6 +7390,60 @@ Use null instead of 0 if you cannot estimate a price. All keys must use double q
         window.aiScanRetry = aiScanRetry;
 
         // ── Boot: render from localStorage instantly, then check cloud ──
+
+        // ── Back Button Modal Manager ──────────────────────────────────
+        // Pushes a history entry when any modal opens so the back button
+        // closes the modal instead of navigating away.
+        (function() {
+            // Map of modal IDs → their close functions
+            const MODAL_CLOSERS = [
+                { id: 'itemModal',        close: () => closeModal(),            check: el => el.classList.contains('active') },
+                { id: 'scanOverlay',      close: () => closeScanModal(),        check: el => el.style.display === 'flex' },
+                { id: 'aiScanOverlay',    close: () => closeAIScanModal(),      check: el => el.style.display === 'flex' },
+                { id: 'importOverlay',    close: () => closeImportModal(),      check: el => el.style.display === 'flex' },
+                { id: 'barcodeModal',     close: () => closeBarcodeModal(),     check: el => el.classList.contains('active') },
+                { id: 'expenseModal',     close: () => closeExpenseModal(),     check: el => el.classList.contains('active') },
+                { id: 'platformModal',    close: () => closePlatformModal(),    check: el => el.classList.contains('active') },
+                { id: 'taskModal',        close: () => closeTaskModal(),        check: el => el.classList.contains('active') },
+                { id: 'manualTripModal',  close: () => closeManualTripModal(),  check: el => el.classList.contains('active') },
+                { id: 'photoModal',       close: () => closePhotoModal(),       check: el => el.classList.contains('active') },
+                { id: 'loginOverlay',     close: () => skipLogin(),             check: el => el.style.display === 'flex' },
+            ];
+
+            function anyModalOpen() {
+                return MODAL_CLOSERS.some(m => {
+                    const el = document.getElementById(m.id);
+                    return el && m.check(el);
+                });
+            }
+
+            function closeTopModal() {
+                for (const m of MODAL_CLOSERS) {
+                    const el = document.getElementById(m.id);
+                    if (el && m.check(el)) { m.close(); return true; }
+                }
+                return false;
+            }
+
+            // Push a state whenever a modal opens so the back button has somewhere to go
+            const _origAdd = Element.prototype.classList.add;
+            // Use a MutationObserver on body to detect modal opens instead of patching classList
+            const observer = new MutationObserver(() => {
+                if (anyModalOpen() && history.state?.modal !== true) {
+                    history.pushState({ modal: true }, '');
+                }
+            });
+            observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+
+            window.addEventListener('popstate', function(e) {
+                if (closeTopModal()) {
+                    // Replaced the state — if another modal is still open, push again
+                    if (anyModalOpen()) {
+                        history.pushState({ modal: true }, '');
+                    }
+                }
+            });
+        })();
         init();
         initGalleryDropListeners();
         initListDropListeners();

@@ -2,50 +2,200 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#4f46e5">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Reseller Pro - Inventory Tracker</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Reseller Pro | Enterprise</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
     <script>
-        // Prevent flash — apply saved theme before paint
-        try { if (localStorage.getItem('reseller_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch(e) {}
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { primary: '#4F52C9', secondary: '#EEEAF8', accent: '#DDE3F9', pink: '#E040A0', dark: '#1B1D3A' }
+                    },
+                    borderRadius: { '4xl': '2rem' }
+                }
+            }
+        }
     </script>
-        <style>
-        /* ══════════════════════════════════════════════════════
-           RESELLER PRO — BUBBLY EDITION
-           Exact match to reference screenshot:
-           • BG: #EEEAF8 (warm lavender)
-           • Cards: white + #DDE3F9 blue-tint accent
-           • Nav: #1B1D3A dark navy pill, floating centered
-           • Logo: indigo→pink gradient text
-           • Primary btn: #4F52C9 indigo pill, white text
-           • Font: Inter
-           ══════════════════════════════════════════════════════ */
-        :root {
-            --bg:            #EEEAF8;
-            --card-white:    #FFFFFF;
-            --card-blue:     #DDE3F9;
-            --card-blue-text:#3D4DB7;
-            --nav-bg:        #1B1D3A;
-            --primary:       #4F52C9;
-            --primary-hover: #3D40B0;
-            --pink:          #E040A0;
-            --text-dark:     #1B1D3A;
-            --text-mid:      #4A4A6A;
-            --text-muted:    #9494B8;
-            --green:         #2ECB8E;
-            --red:           #F43F5E;
-            --amber:         #F59E0B;
-            --surface:       #FFFFFF;
-            --border:        rgba(255,255,255,0.6);
-            --shadow:        0 8px 32px rgba(27,29,58,0.08);
-            --shadow-hover:  0 20px 48px rgba(79,82,201,0.18);
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #EEEAF8; -webkit-tap-highlight-color: transparent; }
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
+        .bouncy-tap { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .bouncy-tap:active { transform: scale(0.92); }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="pb-32">
+
+    <header class="p-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-extrabold bg-gradient-to-r from-brand-primary to-brand-pink bg-clip-text text-transparent">Reseller Pro</h1>
+            <p id="connection-status" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full"></span> Live System
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="startScanner()" class="p-3 glass-card rounded-full bouncy-tap"><i data-lucide="scan-line" class="w-5 h-5 text-brand-primary"></i></button>
+            <button class="p-3 glass-card rounded-full bouncy-tap"><i data-lucide="bell" class="w-5 h-5"></i></button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4">
+        
+        <section id="view-dashboard" class="view-section active space-y-6">
+            <div id="stats-grid" class="grid grid-cols-2 gap-4">
+                <div class="glass-card p-6 rounded-4xl">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Revenue</span>
+                    <div id="stat-revenue" class="text-2xl font-extrabold text-brand-dark mt-1">$0.00</div>
+                </div>
+                <div class="bg-brand-accent p-6 rounded-4xl border border-white/50">
+                    <span class="text-[10px] font-bold text-brand-primary uppercase tracking-wider">Profit</span>
+                    <div id="stat-profit" class="text-2xl font-extrabold text-brand-primary mt-1">$0.00</div>
+                </div>
+            </div>
+            
+            <div class="glass-card p-6 rounded-4xl">
+                <h3 class="font-bold text-brand-dark mb-4 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-brand-pink"></i> Performance</h3>
+                <div class="h-32 flex items-end justify-between gap-2 px-2">
+                    <div class="bg-brand-primary w-full rounded-t-lg h-[40%]"></div>
+                    <div class="bg-brand-primary w-full rounded-t-lg h-[60%]"></div>
+                    <div class="bg-brand-pink w-full rounded-t-lg h-[90%]"></div>
+                    <div class="bg-brand-primary w-full rounded-t-lg h-[50%]"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-inventory" class="view-section space-y-4">
+            <div class="flex justify-between items-center px-2">
+                <h2 class="text-xl font-bold">Stockroom</h2>
+                <div class="flex bg-white/50 p-1 rounded-full border border-white">
+                    <button onclick="toggleDisplay('list')" class="p-2 rounded-full bouncy-tap bg-white shadow-sm"><i data-lucide="list" class="w-4 h-4"></i></button>
+                    <button onclick="toggleDisplay('grid')" class="p-2 rounded-full bouncy-tap"><i data-lucide="grid" class="w-4 h-4"></i></button>
+                </div>
+            </div>
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                <input type="text" onkeyup="searchItems(this.value)" placeholder="Search inventory..." class="w-full bg-white border-none rounded-2xl py-4 pl-12 shadow-sm focus:ring-2 focus:ring-brand-primary transition-all">
+            </div>
+            <div id="inventory-container" class="space-y-3">
+                </div>
+        </section>
+
+        <section id="view-tasks" class="view-section space-y-4">
+            <h2 class="text-xl font-bold px-2">Operations</h2>
+            <div id="task-kanban" class="grid gap-4">
+                </div>
+        </section>
+
+    </main>
+
+    <div id="scanner-modal" class="fixed inset-0 z-[100] bg-black hidden flex flex-col">
+        <div id="reader" class="w-full h-full"></div>
+        <button onclick="stopScanner()" class="absolute bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 bg-white rounded-full font-bold text-black bouncy-tap">Close Scanner</button>
+    </div>
+
+    <nav class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[92%] max-w-md h-20 bg-brand-dark rounded-full flex items-center justify-around px-4 shadow-2xl z-50">
+        <button onclick="showView('dashboard')" class="nav-item p-3 rounded-full text-white/40 hover:text-white transition-all bouncy-tap" data-view="dashboard">
+            <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+        </button>
+        <button onclick="showView('inventory')" class="nav-item p-3 rounded-full text-white/40 hover:text-white transition-all bouncy-tap" data-view="inventory">
+            <i data-lucide="package" class="w-6 h-6"></i>
+        </button>
+        
+        <button onclick="openFormModal()" class="w-16 h-16 bg-brand-primary rounded-full -translate-y-6 border-[6px] border-[#EEEAF8] flex items-center justify-center shadow-xl bouncy-tap">
+            <i data-lucide="plus" class="w-8 h-8 text-white"></i>
+        </button>
+
+        <button onclick="showView('tasks')" class="nav-item p-3 rounded-full text-white/40 hover:text-white transition-all bouncy-tap" data-view="tasks">
+            <i data-lucide="check-square" class="w-6 h-6"></i>
+        </button>
+        <button onclick="showView('settings')" class="nav-item p-3 rounded-full text-white/40 hover:text-white transition-all bouncy-tap" data-view="settings">
+            <i data-lucide="settings" class="w-6 h-6"></i>
+        </button>
+    </nav>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const SB_URL = 'YOUR_SUPABASE_URL'; 
+        const SB_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- 2. NAVIGATION LOGIC ---
+        function showView(viewId) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+            
+            // Update Nav Icons
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('text-white', 'bg-white/10');
+                if(item.dataset.view === viewId) item.classList.add('text-white', 'bg-white/10');
+            });
+        }
+
+        // --- 3. CORE INVENTORY LOGIC ---
+        async function fetchInventory() {
+            const { data, error } = await supabase.from('inventory').select('*').order('created_at', { ascending: false });
+            if (error) return console.error(error);
+            renderInventory(data);
+            calculateStats(data);
+        }
+
+        function renderInventory(items) {
+            const container = document.getElementById('inventory-container');
+            container.innerHTML = items.map(item => `
+                <div class="glass-card p-4 rounded-3xl flex items-center gap-4 bouncy-tap">
+                    <div class="w-16 h-16 bg-brand-accent rounded-2xl flex items-center justify-center text-brand-primary font-bold">
+                        ${item.name.charAt(0)}
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-brand-dark">${item.name}</h4>
+                        <p class="text-xs text-gray-500">${item.category} • SKU: ${item.sku || 'N/A'}</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-brand-primary">$${item.sale_price}</div>
+                        <div class="text-[10px] text-green-600 font-bold uppercase">Profit: $${item.sale_price - item.cost_price}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- 4. QR SCANNER LOGIC ---
+        let html5QrCode;
+        function startScanner() {
+            document.getElementById('scanner-modal').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+            (decodedText) => {
+                console.log("Scan Success:", decodedText);
+                stopScanner();
+                // Custom logic: trigger search or open item
+            });
+        }
+
+        function stopScanner() {
+            if(html5QrCode) html5QrCode.stop();
+            document.getElementById('scanner-modal').classList.add('hidden');
+        }
+
+        // --- 5. INITIALIZATION ---
+        window.onload = () => {
+            lucide.createIcons();
+            fetchInventory();
+            showView('dashboard'); // Start on dashboard
+        };
+    </script>
+</body>
+</html>            --shadow-hover:  0 20px 48px rgba(79,82,201,0.18);
             --spring:        all 0.4s cubic-bezier(0.34,1.56,0.64,1);
             --ease:          all 0.2s ease;
 

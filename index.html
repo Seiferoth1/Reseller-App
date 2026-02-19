@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>Reseller Pro | Enterprise</title>
+    <title>Reseller Pro | Hub</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <script>
@@ -30,24 +29,29 @@
         .bouncy { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .bouncy:active { transform: scale(0.92); }
         .nav-pill { background: #1B1D3A; box-shadow: 0 10px 25px rgba(27, 29, 58, 0.3); }
+        
         .view-section { display: none; }
         .view-section.active { display: block; animation: slideUp 0.4s ease-out; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Custom Drawer Animation */
+        #add-modal { transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1); transform: translateY(100%); }
+        #add-modal.open { transform: translateY(0); }
     </style>
 </head>
-<body class="pb-32">
+<body class="pb-32 overflow-x-hidden">
 
     <header class="p-6 flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-extrabold bg-gradient-to-r from-brand-primary to-brand-pink bg-clip-text text-transparent italic">Reseller Pro</h1>
             <div class="flex items-center gap-2 mt-1">
-                <span id="conn-dot" class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
-                <p id="status-tag" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Connecting...</p>
+                <span id="conn-dot" class="w-2 h-2 bg-green-500 rounded-full"></span>
+                <p id="status-tag" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System Live</p>
             </div>
         </div>
-        <button onclick="startScanner()" class="w-12 h-12 glass-card rounded-full flex items-center justify-center bouncy shadow-lg">
-            <i data-lucide="scan-line" class="w-5 h-5 text-brand-primary"></i>
-        </button>
+        <div class="flex gap-2">
+            <button class="w-12 h-12 glass-card rounded-full flex items-center justify-center bouncy"><i data-lucide="bell" class="w-5 h-5 text-brand-dark"></i></button>
+        </div>
     </header>
 
     <main class="container mx-auto px-4">
@@ -56,140 +60,200 @@
             <div class="grid grid-cols-2 gap-4">
                 <div class="glass-card p-6 rounded-4xl">
                     <p class="text-[10px] font-bold text-gray-400 uppercase">Gross Revenue</p>
-                    <h2 id="revenue-val" class="text-2xl font-black mt-1">$0</h2>
+                    <h2 id="rev-out" class="text-2xl font-black mt-1 text-brand-dark">$0</h2>
                 </div>
-                <div class="bg-brand-primary p-6 rounded-4xl shadow-lg shadow-brand-primary/20">
+                <div class="bg-brand-primary p-6 rounded-4xl shadow-lg">
                     <p class="text-[10px] font-bold text-white/60 uppercase">Net Profit</p>
-                    <h2 id="profit-val" class="text-2xl font-black mt-1 text-white">$0</h2>
+                    <h2 id="prof-out" class="text-2xl font-black mt-1 text-white">$0</h2>
                 </div>
             </div>
 
             <div class="glass-card rounded-4xl p-6">
-                <h3 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="package" class="w-4 h-4 text-brand-pink"></i> Recent Stock</h3>
-                <div id="dashboard-list" class="space-y-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold">Recent Items</h3>
+                    <button onclick="changeView('inventory')" class="text-xs font-bold text-brand-primary">View All</button>
+                </div>
+                <div id="recent-list" class="space-y-3">
                     </div>
             </div>
         </section>
 
-        <section id="view-tasks" class="view-section space-y-6">
-            <h2 class="text-xl font-extrabold px-2">Workflows</h2>
-            <div id="task-kanban" class="grid grid-cols-1 gap-4">
+        <section id="view-inventory" class="view-section space-y-4">
+            <div class="flex gap-2">
+                <div class="flex-1 glass-card rounded-full flex items-center px-4 py-3">
+                    <i data-lucide="search" class="w-4 h-4 text-gray-400 mr-2"></i>
+                    <input type="text" id="search-bar" oninput="filterInventory()" placeholder="Search stock..." class="bg-transparent text-sm w-full outline-none">
+                </div>
+                <button class="w-12 h-12 glass-card rounded-full flex items-center justify-center bouncy"><i data-lucide="sliders-horizontal" class="w-4 h-4 text-brand-dark"></i></button>
+            </div>
+            
+            <div id="full-inventory-list" class="space-y-3">
                 </div>
         </section>
 
-        <div id="error-console" class="hidden p-6 mt-4 bg-red-50 rounded-4xl border border-red-100">
-            <h4 class="text-red-600 font-bold text-xs uppercase mb-2">Technical Error Detected</h4>
-            <p id="error-msg" class="text-[11px] text-red-400 font-mono break-all"></p>
-        </div>
+        <section id="view-tasks" class="view-section space-y-6">
+            <h2 class="text-xl font-extrabold px-2">Operations</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <div class="glass-card p-4 rounded-3xl border-l-4 border-l-yellow-400">
+                    <span class="text-[9px] font-bold text-yellow-600 uppercase">To List (3)</span>
+                    <p class="text-xs text-gray-500 mt-1">Pending photography & measurements.</p>
+                </div>
+                <div class="glass-card p-4 rounded-3xl border-l-4 border-l-brand-primary">
+                    <span class="text-[9px] font-bold text-brand-primary uppercase">Active (12)</span>
+                    <p class="text-xs text-gray-500 mt-1">Syncing with eBay & Poshmark.</p>
+                </div>
+            </div>
+        </section>
+
     </main>
 
-    <div id="scanner-modal" class="fixed inset-0 z-[100] bg-black hidden flex flex-col">
-        <div id="reader" class="w-full h-full"></div>
-        <button onclick="stopScanner()" class="absolute bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 bg-white rounded-full font-bold bouncy">Close Scanner</button>
+    <div id="add-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-brand-dark/40 backdrop-blur-sm" onclick="toggleModal(false)"></div>
+        <div class="absolute bottom-0 left-0 right-0 glass-card rounded-t-4xl p-8 flex flex-col space-y-6">
+            <div class="w-12 h-1.5 bg-gray-200 rounded-full self-center mb-2"></div>
+            <h2 class="text-xl font-extrabold">Add New Stock</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Item Name</label>
+                    <input id="new-name" type="text" placeholder="e.g. Vintage Nike Windbreaker" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 ring-brand-primary">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Cost Price</label>
+                        <input id="new-cost" type="number" placeholder="$0.00" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Est. Sale</label>
+                        <input id="new-sale" type="number" placeholder="$0.00" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="saveItem()" class="w-full py-4 bg-brand-primary text-white font-bold rounded-2xl shadow-lg bouncy">Save to Inventory</button>
+        </div>
     </div>
 
     <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md h-20 nav-pill rounded-full flex items-center justify-around px-2 z-50">
         <button onclick="changeView('dashboard')" class="p-4 text-white bouncy"><i data-lucide="layout-dashboard"></i></button>
         <button onclick="changeView('inventory')" class="p-4 text-white/40 bouncy"><i data-lucide="package"></i></button>
-        
-        <button class="w-16 h-16 bg-brand-pink rounded-full -translate-y-5 border-[6px] border-[#EEEAF8] flex items-center justify-center text-white shadow-xl bouncy">
+        <button onclick="toggleModal(true)" class="w-16 h-16 bg-brand-pink rounded-full -translate-y-5 border-[6px] border-[#EEEAF8] flex items-center justify-center text-white shadow-xl bouncy">
             <i data-lucide="plus" class="w-8 h-8"></i>
         </button>
-        
         <button onclick="changeView('tasks')" class="p-4 text-white/40 bouncy"><i data-lucide="clipboard-list"></i></button>
-        <button onclick="changeView('settings')" class="p-4 text-white/40 bouncy"><i data-lucide="settings"></i></button>
+        <button class="p-4 text-white/40 bouncy"><i data-lucide="settings"></i></button>
     </nav>
 
     <script>
-        // --- CREDENTIALS FROM YOUR FILE ---
+        // --- CREDENTIALS (FROM YOUR PREVIOUS FILE) ---
         const SB_URL = 'https://pglbroqrzchalfivhxju.supabase.co'; 
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbGJyb3FyemNoYWxmaXZoeGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzczNjksImV4cCI6MjA4Njg1MzM2OX0.txVH7ywpKEC1bGnufqF36bwqWLIiTdmNmx9ZYYN2n_Q';
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-        // 1. NAVIGATION
-        function changeView(viewId) {
-            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-            const target = document.getElementById('view-' + viewId);
-            if(target) target.classList.add('active');
+        let globalInventory = [];
+
+        // 1. VIEW CONTROLLER
+        function changeView(id) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + id).classList.add('active');
             lucide.createIcons();
         }
 
-        // 2. DATA FETCHING
-        async function loadData() {
-            lucide.createIcons();
-            const list = document.getElementById('dashboard-list');
-            const status = document.getElementById('status-tag');
-            const dot = document.getElementById('conn-dot');
-
-            try {
-                const { data, error } = await _supabase.from('inventory').select('*').order('created_at', { ascending: false });
-
-                if (error) throw error;
-
-                // Success
-                status.innerText = "System Live";
-                dot.classList.replace('bg-yellow-400', 'bg-green-500');
-                dot.classList.remove('animate-pulse');
-                renderList(data);
-                updateStats(data);
-            } catch (err) {
-                console.error(err);
-                status.innerText = "Sync Failed";
-                dot.classList.replace('bg-yellow-400', 'bg-red-500');
-                
-                // Detailed diagnostic output
-                document.getElementById('error-console').classList.remove('hidden');
-                document.getElementById('error-msg').innerText = err.message || "Unknown Supabase Error";
+        function toggleModal(show) {
+            const modal = document.getElementById('add-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.classList.add('open'), 10);
+            } else {
+                modal.classList.remove('open');
+                setTimeout(() => modal.classList.add('hidden'), 500);
             }
         }
 
-        function renderList(items) {
-            const list = document.getElementById('dashboard-list');
-            if(!items || items.length === 0) {
-                list.innerHTML = `<p class="text-center py-8 text-gray-400 italic text-sm">No items found in 'inventory' table.</p>`;
+        // 2. DATA OPERATIONS
+        async function loadAppData() {
+            lucide.createIcons();
+            try {
+                const { data, error } = await _supabase.from('inventory').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                globalInventory = data;
+                renderApp();
+            } catch (err) {
+                console.error("Fetch failed:", err.message);
+            }
+        }
+
+        async function saveItem() {
+            const name = document.getElementById('new-name').value;
+            const cost = document.getElementById('new-cost').value;
+            const sale = document.getElementById('new-sale').value;
+
+            if(!name) return alert("Please name your item!");
+
+            try {
+                const { error } = await _supabase.from('inventory').insert([{ name, cost_price: cost, sale_price: sale, category: 'General' }]);
+                if (error) throw error;
+                
+                toggleModal(false);
+                loadAppData(); // Refresh
+                document.getElementById('new-name').value = '';
+            } catch (err) { alert(err.message); }
+        }
+
+        // 3. RENDERING
+        function renderApp() {
+            const recentContainer = document.getElementById('recent-list');
+            const fullContainer = document.getElementById('full-inventory-list');
+            
+            if (globalInventory.length === 0) {
+                recentContainer.innerHTML = `<p class="py-4 text-center text-gray-400 text-xs italic">Tap + to add your first item!</p>`;
+                fullContainer.innerHTML = `<p class="py-10 text-center text-gray-400">Inventory Empty</p>`;
                 return;
             }
 
-            list.innerHTML = items.map(item => `
-                <div class="flex items-center gap-4 p-4 bg-white/50 rounded-3xl border border-white bouncy">
-                    <div class="w-12 h-12 bg-brand-accent rounded-2xl flex items-center justify-center font-bold text-brand-primary">
-                        ${item.name ? item.name[0].toUpperCase() : '?'}
-                    </div>
+            // Stats
+            let totalRev = 0; let totalCost = 0;
+            globalInventory.forEach(i => {
+                totalRev += Number(i.sale_price || 0);
+                totalCost += Number(i.cost_price || 0);
+            });
+            document.getElementById('rev-out').innerText = `$${totalRev.toLocaleString()}`;
+            document.getElementById('prof-out').innerText = `$${(totalRev - totalCost).toLocaleString()}`;
+
+            // List Component
+            const listHTML = (item) => `
+                <div class="flex items-center gap-4 p-4 bg-white/60 rounded-3xl border border-white bouncy">
+                    <div class="w-12 h-12 bg-brand-accent/50 rounded-2xl flex items-center justify-center font-bold text-brand-primary">${item.name[0]}</div>
                     <div class="flex-1">
-                        <div class="font-bold text-sm text-brand-dark">${item.name}</div>
-                        <div class="text-[10px] text-gray-400 uppercase font-black">${item.category || 'Stock'}</div>
+                        <h4 class="font-bold text-sm">${item.name}</h4>
+                        <p class="text-[9px] text-gray-400 uppercase font-black tracking-widest">${item.category}</p>
                     </div>
                     <div class="text-right">
-                        <div class="font-black text-brand-primary">$${item.sale_price || 0}</div>
-                        <div class="text-[9px] font-bold text-green-500">+$${(item.sale_price - item.cost_price) || 0}</div>
+                        <div class="font-black text-brand-dark">$${item.sale_price}</div>
+                        <div class="text-[9px] font-bold text-green-500">+$${item.sale_price - item.cost_price}</div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+
+            recentContainer.innerHTML = globalInventory.slice(0, 3).map(listHTML).join('');
+            fullContainer.innerHTML = globalInventory.map(listHTML).join('');
         }
 
-        function updateStats(items) {
-            const rev = items.reduce((s, i) => s + (Number(i.sale_price) || 0), 0);
-            const cost = items.reduce((s, i) => s + (Number(i.cost_price) || 0), 0);
-            document.getElementById('revenue-val').innerText = `$${rev.toLocaleString()}`;
-            document.getElementById('profit-val').innerText = `$${(rev - cost).toLocaleString()}`;
+        function filterInventory() {
+            const query = document.getElementById('search-bar').value.toLowerCase();
+            const filtered = globalInventory.filter(i => i.name.toLowerCase().includes(query));
+            const fullContainer = document.getElementById('full-inventory-list');
+            
+            const listHTML = (item) => `
+                <div class="flex items-center gap-4 p-4 bg-white/60 rounded-3xl border border-white bouncy">
+                    <div class="w-12 h-12 bg-brand-accent/50 rounded-2xl flex items-center justify-center font-bold text-brand-primary">${item.name[0]}</div>
+                    <div class="flex-1"><h4 class="font-bold text-sm">${item.name}</h4></div>
+                    <div class="text-right font-black">$${item.sale_price}</div>
+                </div>`;
+            
+            fullContainer.innerHTML = filtered.map(listHTML).join('');
         }
 
-        // 3. SCANNER
-        let scanner;
-        function startScanner() {
-            document.getElementById('scanner-modal').classList.remove('hidden');
-            scanner = new Html5Qrcode("reader");
-            scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-                alert("Scanned: " + text);
-                stopScanner();
-            });
-        }
-        function stopScanner() {
-            if(scanner) scanner.stop();
-            document.getElementById('scanner-modal').classList.add('hidden');
-        }
-
-        window.onload = loadData;
+        window.onload = loadAppData;
     </script>
 </body>
 </html>

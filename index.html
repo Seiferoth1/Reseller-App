@@ -66,6 +66,32 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#E8E5F5;color:#1B1D3A
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .photo-thumb{width:60px;height:60px;object-fit:cover;border-radius:10px;border:2px solid #EEEAF8;cursor:pointer;flex-shrink:0}
 .photo-thumb:hover{border-color:#4F52C9}
+
+/* ── Sync indicator ── */
+.sync-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:10px;font-weight:700;transition:all 0.3s}
+.sync-pill .sync-dot{width:7px;height:7px;border-radius:50%;transition:background 0.3s}
+.sync-pill.synced{background:#10b981;color:#fff}.sync-pill.synced .sync-dot{background:#a7f3d0;animation:syncPulse 2s infinite}
+.sync-pill.syncing{background:#f59e0b;color:#fff}.sync-pill.syncing .sync-dot{background:#fde68a;animation:syncPulse 0.8s infinite}
+.sync-pill.offline{background:#94a3b8;color:#fff}.sync-pill.offline .sync-dot{background:#e2e8f0}
+.sync-pill.error{background:#f43f5e;color:#fff}.sync-pill.error .sync-dot{background:#fda4af}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+/* ── Login overlay ── */
+.login-overlay{position:fixed;inset:0;background:rgba(27,29,58,0.65);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:2000}
+.login-card{background:#fff;border-radius:2rem;width:380px;max-width:92vw;padding:36px 32px 28px;box-shadow:0 32px 64px rgba(27,29,58,0.25);text-align:center}
+.login-card .login-logo{width:56px;height:56px;background:linear-gradient(135deg,#4F52C9,#E040A0);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:24px;margin-bottom:16px}
+.login-card h2{font-size:22px;font-weight:800;color:#1B1D3A;margin:0 0 6px}
+.login-card p{font-size:13px;color:#94a3b8;margin:0 0 22px}
+.login-input{width:100%;padding:12px 14px;border:1.5px solid #E8EAF4;border-radius:10px;font-size:14px;margin-bottom:12px;box-sizing:border-box;background:#F3F5FA;color:#1B1D3A;outline:none;font-family:inherit;transition:border-color 0.2s}
+.login-input:focus{border-color:#4F52C9;background:#fff}
+.login-btn{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,#4F52C9,#6366f1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.2s;font-family:inherit}
+.login-btn:hover{opacity:0.9}.login-btn:disabled{opacity:0.5;cursor:wait}
+.login-error{color:#f43f5e;font-size:12px;font-weight:600;margin:8px 0;min-height:18px}
+.login-toggle{margin-top:14px;font-size:12px;color:#94a3b8}
+.login-toggle a{color:#4F52C9;cursor:pointer;font-weight:600}
+.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;font-size:11px;color:#94a3b8;font-weight:600}
+.login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:#E8EAF4}
+.skip-btn{width:100%;padding:10px;border:1.5px solid #E8EAF4;border-radius:10px;background:#fff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s;font-family:inherit}
+.skip-btn:hover{background:#F3F5FA}
 </style>
 </head>
 <body>
@@ -532,45 +558,313 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#E8E5F5;color:#1B1D3A
   </div>
 </div>
 
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">📦</div>
+    <h2 id="loginTitle">Welcome Back</h2>
+    <p id="loginSubtitle">Sign in to sync your data across devices</p>
+    <div id="loginError" class="login-error"></div>
+    <form id="loginForm" onsubmit="handleAuth(event)">
+      <input class="login-input" id="authEmail" type="email" placeholder="Email address" required>
+      <input class="login-input" id="authPassword" type="password" placeholder="Password" required minlength="6">
+      <button type="submit" class="login-btn" id="authSubmitBtn">Sign In</button>
+    </form>
+    <div class="login-toggle" id="loginToggle">
+      Don't have an account? <a onclick="toggleAuthMode()">Sign Up</a>
+    </div>
+    <div class="login-divider">or</div>
+    <button class="skip-btn" onclick="skipLogin()">Continue offline (local only)</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toastEl" class="toast hidden"></div>
 
 <script>
 // ════════════════════════════════════════════════
-// SUPABASE
+// SUPABASE + AUTH
 // ════════════════════════════════════════════════
-const SB_URL = 'https://pglbroqrzchalfivhxju.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbGJyb3FyemNoYWxmaXZoeGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzczNjksImV4cCI6MjA4Njg1MzM2OX0.txVH7ywpKEC1bGnufqF36bwqWLIiTdmNmx9ZYYN2n_Q';
-const _supabase = supabase.createClient(SB_URL, SB_KEY);
+const SUPABASE_URL  = 'https://pglbroqrzchalfivhxju.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbGJyb3FyemNoYWxmaXZoeGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzczNjksImV4cCI6MjA4Njg1MzM2OX0.txVH7ywpKEC1bGnufqF36bwqWLIiTdmNmx9ZYYN2n_Q';
+
+let sbClient = null;
+let currentUser = null;
+let authMode = 'login';
+let syncEnabled = false;
+let syncDebounceTimer = null;
+let _pollInterval = null;
+let _lastCloudTs = null;
+let _realtimeChannel = null;
+
+function getGroqKey() { return localStorage.getItem('reseller_groq_key') || ''; }
+function setGroqKey(k) { localStorage.setItem('reseller_groq_key', k.trim()); }
+
+function initSupabase() {
+  if (sbClient) return true;
+  const sb = window.supabase;
+  if (!sb) return false;
+  const createFn = sb.createClient || (sb.default && sb.default.createClient);
+  if (!createFn) return false;
+  try { sbClient = createFn(SUPABASE_URL, SUPABASE_ANON); return true; }
+  catch(e) { console.warn('Supabase init failed:', e); return false; }
+}
+initSupabase();
+
+// ════════════════════════════════════════════════
+// LOCAL STORAGE — original reseller_* keys
+// ════════════════════════════════════════════════
+function loadFromStorage() {
+  const parse = (key, def) => { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; } };
+  const inv = parse('reseller_inventory', []);
+  inv.forEach(i => { if (i.dateSold) i.dateSold = new Date(i.dateSold); });
+  return { inventory: inv, tasks: parse('reseller_tasks', []), mileage: parse('reseller_mileage', []) };
+}
+
+function saveToLocalStorage() {
+  localStorage.setItem('reseller_inventory', JSON.stringify(inventory));
+  localStorage.setItem('reseller_tasks', JSON.stringify(tasks));
+  localStorage.setItem('reseller_mileage', JSON.stringify(mileageTrips));
+}
 
 // ════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════
-let inventory = JSON.parse(localStorage.getItem('rp_inventory') || '[]');
-let tasks     = JSON.parse(localStorage.getItem('rp_tasks')     || '[]');
-let mileageTrips = JSON.parse(localStorage.getItem('rp_mileage') || '[]');
+const _stored = loadFromStorage();
+
+const _defaultInventory = [
+  { id:'i1', name:'Vintage Leather Jacket', sku:'VLJ-001', category:'Accessories', platform:'eBay', source:'Poshmark', purchase:44, sale:70, platformFees:0, shippingCost:9.5, status:'Sold', notes:'', photos:[], dateSold:'2026-02-10' },
+  { id:'i2', name:'Beauty Bundle', sku:'BB-002', category:'General', platform:'Poshmark', source:'eBay', purchase:85, sale:465, platformFees:0, shippingCost:10, status:'Sold', notes:'', photos:[], dateSold:'2026-02-02' },
+  { id:'i3', name:'Electronics Lot', sku:'EL-003', category:'Electronics', platform:'Mercari', source:'Goodwill', purchase:33, sale:85, platformFees:0, shippingCost:9.5, status:'Sold', notes:'', photos:[], dateSold:'2026-01-15' },
+  { id:'i4', name:'Auto Parts', sku:'AP-004', category:'General', platform:'Etsy', source:'Bid FTA', purchase:43, sale:85, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-01-20' },
+  { id:'i5', name:'Kids Toys', sku:'KT-005', category:'General', platform:'Depop', source:'Salvation Army', purchase:23, sale:null, platformFees:0, shippingCost:0, status:'Listed', notes:'', photos:[], dateSold:null },
+  { id:'i6', name:'Baby Clothes Bundle', sku:'BCB-006', category:'Clothing', platform:'FB Marketplace', source:'Garage Sale', purchase:33, sale:89, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-02-08' },
+  { id:'i7', name:'Designer Dress', sku:'DD-007', category:'Clothing', platform:'Mercari', source:'Estate Sale', purchase:12, sale:623, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-02-12' },
+  { id:'i8', name:'Laptop', sku:'LP-008', category:'Electronics', platform:'', source:'Walmart', purchase:68, sale:null, platformFees:0, shippingCost:0, status:'Listed', notes:'', photos:[], dateSold:null },
+  { id:'i9', name:'Kitchen Set', sku:'KS-009', category:'Home', platform:'', source:'Amazon', purchase:89, sale:null, platformFees:0, shippingCost:0, status:'Returned', notes:'', photos:[], dateSold:null },
+  { id:'i10', name:'Vinyl Records', sku:'VR-010', category:'General', platform:'Etsy', source:'Facebook', purchase:12, sale:45, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-01-25' },
+  { id:'i11', name:"Men's Suit", sku:'MS-011', category:'Clothing', platform:'Poshmark', source:'Estate Sale', purchase:54, sale:90, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-02-05' },
+  { id:'i12', name:'Gold Necklace', sku:'GN-012', category:'General', platform:'Whatnot', source:'Walmart', purchase:40, sale:null, platformFees:0, shippingCost:0, status:'Unlisted', notes:'', photos:[], dateSold:null },
+  { id:'i13', name:'Rare Books', sku:'RB-013', category:'Books', platform:'OfferUp', source:'OfferUp', purchase:3, sale:41, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-02-11' }
+];
+
+const _defaultMileage = [
+  { id:'m1', date:'2026-01-15', miles:45, purpose:'Estate sale run — east side', deduction:31.50 },
+  { id:'m2', date:'2026-01-22', miles:12, purpose:'Post office + supply pickup', deduction:8.40 },
+  { id:'m3', date:'2026-02-05', miles:28, purpose:'Goodwill + Salvation Army loop', deduction:19.60 },
+  { id:'m4', date:'2026-02-10', miles:8, purpose:'Drop-off at FedEx', deduction:5.60 },
+  { id:'m5', date:'2026-02-14', miles:52, purpose:'Bid FTA warehouse pickup', deduction:36.40 }
+];
+
+let inventory    = _stored.inventory.length ? _stored.inventory : _defaultInventory;
+let tasks        = _stored.tasks;
+let mileageTrips = _stored.mileage.length ? _stored.mileage : _defaultMileage;
 const IRS_RATE = 0.70;
 let currentView = 'gallery';
-let pendingPhotos = []; // base64 strings
+let pendingPhotos = [];
 let editingItemId = null;
 let editingTaskId = null;
-let sortField = 'name'; sortDir = 1;
+let sortField = 'name'; let sortDir = 1;
 let aiResults = {};
 let cameraStream = null;
 
 // GPS
 let gpsWatchId = null;
 let tripActive = false;
-let tripStartCoords = null;
 let tripStartTime = null;
 let tripTimerInterval = null;
 let tripTotalMeters = 0;
 let lastCoords = null;
 
 function save() {
-  localStorage.setItem('rp_inventory', JSON.stringify(inventory));
-  localStorage.setItem('rp_tasks', JSON.stringify(tasks));
-  localStorage.setItem('rp_mileage', JSON.stringify(mileageTrips));
+  saveToLocalStorage();
+  clearTimeout(syncDebounceTimer);
+  syncDebounceTimer = setTimeout(syncToCloud, 400);
+}
+
+// ════════════════════════════════════════════════
+// SYNC ENGINE
+// ════════════════════════════════════════════════
+function setSyncStatus(status, label) {
+  const el = document.getElementById('syncPill');
+  const lb = document.getElementById('syncLabel');
+  if (!el) return;
+  el.className = 'sync-pill ' + status;
+  if (lb) lb.textContent = label || status;
+}
+
+async function syncToCloud() {
+  if (!syncEnabled || !sbClient || !currentUser) { setSyncStatus('offline','Local Only'); return; }
+  setSyncStatus('syncing','Syncing...');
+  try {
+    const cleanInv = JSON.parse(JSON.stringify(inventory)).map(item => {
+      if (item.photos && item.photos.length) { item.photoCount = item.photos.length; item.photos = []; }
+      return item;
+    });
+    const { error } = await sbClient.from('reseller_data').upsert({
+      user_id: currentUser.id,
+      inventory: cleanInv,
+      tasks: JSON.parse(JSON.stringify(tasks)),
+      mileage: JSON.parse(JSON.stringify(mileageTrips)),
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+    if (error) throw error;
+    setSyncStatus('synced','Synced');
+  } catch(e) {
+    console.error('Sync failed:', e);
+    setSyncStatus('error','Sync failed');
+  }
+}
+
+async function loadFromCloud() {
+  if (!sbClient || !currentUser) return;
+  setSyncStatus('syncing','Loading...');
+  try {
+    const { data, error } = await sbClient.from('reseller_data').select('*').eq('user_id', currentUser.id).single();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data) {
+      _lastCloudTs = data.updated_at;
+      const photoMap = {};
+      inventory.forEach(i => { if (i.photos && i.photos.length) photoMap[(i.name||'')+'|'+(i.sku||'')] = i.photos; });
+      if (Array.isArray(data.inventory)) {
+        data.inventory.forEach(i => {
+          if (i.dateSold) i.dateSold = new Date(i.dateSold);
+          if (!i.photos || !i.photos.length) { const k=(i.name||'')+'|'+(i.sku||''); i.photos = photoMap[k] || []; }
+        });
+        inventory = data.inventory;
+      }
+      if (Array.isArray(data.tasks)) tasks = data.tasks;
+      if (Array.isArray(data.mileage)) mileageTrips = data.mileage;
+      saveToLocalStorage();
+      setSyncStatus('synced','Synced');
+      renderInventory(); renderTasks(); renderMileage(); updateDashboard();
+    } else { await syncToCloud(); }
+  } catch(e) { console.error('Cloud load failed:', e); setSyncStatus('error','Load failed'); }
+}
+
+function startPolling() {
+  if (_pollInterval) clearInterval(_pollInterval);
+  _pollInterval = setInterval(async () => {
+    if (!syncEnabled || !sbClient || !currentUser) return;
+    try {
+      const { data } = await sbClient.from('reseller_data').select('updated_at').eq('user_id', currentUser.id).single();
+      if (data && data.updated_at !== _lastCloudTs) { _lastCloudTs = data.updated_at; await loadFromCloud(); }
+    } catch(e) {}
+  }, 8000);
+}
+
+function startRealtimeSync() {
+  if (!sbClient || !currentUser) return;
+  if (_realtimeChannel) { try { sbClient.removeChannel(_realtimeChannel); } catch(e) {} }
+  _realtimeChannel = sbClient.channel('reseller_data_changes')
+    .on('postgres_changes', { event:'*', schema:'public', table:'reseller_data', filter:'user_id=eq.'+currentUser.id },
+      async () => { await loadFromCloud(); })
+    .subscribe();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && syncEnabled && currentUser) loadFromCloud();
+});
+
+// ════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════
+function showLoginModal() {
+  authMode = 'login';
+  document.getElementById('loginTitle').textContent = 'Welcome Back';
+  document.getElementById('loginSubtitle').textContent = 'Sign in to sync your data across devices';
+  document.getElementById('authSubmitBtn').textContent = 'Sign In';
+  document.getElementById('loginToggle').innerHTML = "Don't have an account? <a onclick=\"toggleAuthMode()\">Sign Up</a>";
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPassword').value = '';
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  if (authMode === 'signup') {
+    document.getElementById('loginTitle').textContent = 'Create Account';
+    document.getElementById('loginSubtitle').textContent = 'Sign up to sync inventory across all your devices';
+    document.getElementById('authSubmitBtn').textContent = 'Create Account';
+    document.getElementById('loginToggle').innerHTML = "Already have an account? <a onclick=\"toggleAuthMode()\">Sign In</a>";
+  } else {
+    document.getElementById('loginTitle').textContent = 'Welcome Back';
+    document.getElementById('loginSubtitle').textContent = 'Sign in to sync your data across devices';
+    document.getElementById('authSubmitBtn').textContent = 'Sign In';
+    document.getElementById('loginToggle').innerHTML = "Don't have an account? <a onclick=\"toggleAuthMode()\">Sign Up</a>";
+  }
+  document.getElementById('loginError').textContent = '';
+}
+
+function skipLogin() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  syncEnabled = false;
+  setSyncStatus('offline','Local Only');
+}
+
+async function handleAuth(e) {
+  e.preventDefault();
+  initSupabase();
+  if (!sbClient) { document.getElementById('loginError').textContent = 'Connection failed. Check your internet.'; return; }
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = authMode === 'login' ? 'Signing in...' : 'Creating account...';
+  document.getElementById('loginError').textContent = '';
+  let result;
+  if (authMode === 'signup') result = await sbClient.auth.signUp({ email, password });
+  else result = await sbClient.auth.signInWithPassword({ email, password });
+  btn.disabled = false;
+  btn.textContent = authMode === 'login' ? 'Sign In' : 'Create Account';
+  if (result.error) { document.getElementById('loginError').textContent = result.error.message; return; }
+  if (authMode === 'signup' && result.data && result.data.user && !result.data.session) {
+    document.getElementById('loginError').style.color = '#10b981';
+    document.getElementById('loginError').textContent = 'Check your email for a confirmation link!';
+    return;
+  }
+  currentUser = result.data.user;
+  syncEnabled = true;
+  document.getElementById('loginOverlay').style.display = 'none';
+  updateAuthBar();
+  await loadFromCloud();
+  startRealtimeSync();
+  startPolling();
+}
+
+function updateAuthBar() {
+  const bar = document.getElementById('authBar');
+  if (!bar) return;
+  if (currentUser) {
+    const short = (currentUser.email || '').split('@')[0];
+    bar.innerHTML = '<span style="font-size:11px;font-weight:700;color:#1B1D3A">'+short+'</span> <button onclick="handleLogout()" style="font-size:10px;font-weight:700;color:#f43f5e;background:none;border:none;cursor:pointer;margin-left:4px">Sign Out</button>';
+  } else {
+    bar.innerHTML = '<span onclick="showLoginModal()" style="font-size:11px;font-weight:700;color:#4F52C9;cursor:pointer">Sign In</span>';
+  }
+}
+
+async function handleLogout() {
+  if (sbClient) await sbClient.auth.signOut();
+  currentUser = null; syncEnabled = false;
+  updateAuthBar();
+  setSyncStatus('offline','Local Only');
+}
+
+async function checkSession() {
+  initSupabase();
+  if (!sbClient) { setSyncStatus('offline','Local Only'); return; }
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session && session.user) {
+      currentUser = session.user; syncEnabled = true;
+      updateAuthBar();
+      await loadFromCloud();
+      startRealtimeSync(); startPolling();
+      return;
+    }
+  } catch(e) { console.warn('Session check:', e); }
+  setSyncStatus('offline','Local Only');
 }
 
 // ════════════════════════════════════════════════
@@ -584,30 +878,31 @@ window.onload = () => {
   updateDashboard();
   setupProfitPreview();
 
-  // Load groq key
   const k = localStorage.getItem('reseller_groq_key');
   if (k) document.getElementById('groqKeyInput').value = k;
 
-  // Trip deduction preview
   document.getElementById('mileageQuickMiles').addEventListener('input', function() {
     document.getElementById('tripDeductionPreview').textContent = '$' + (parseFloat(this.value||0)*IRS_RATE).toFixed(2);
   });
 
-  // Supabase cloud sync (best-effort)
-  loadCloud();
-};
-
-async function loadCloud() {
-  try {
-    const { data } = await _supabase.from('inventory').select('*');
-    if (data && data.length) {
-      inventory = data;
-      save();
-      renderInventory();
-      updateDashboard();
+  (async function boot() {
+    await checkSession();
+    if (!currentUser) showLoginModal();
+    if (sbClient) {
+      sbClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session && session.user) {
+          currentUser = session.user; syncEnabled = true;
+          updateAuthBar();
+          await loadFromCloud();
+          startRealtimeSync(); startPolling();
+        } else if (event === 'SIGNED_OUT') {
+          currentUser = null; syncEnabled = false;
+          updateAuthBar(); setSyncStatus('offline','Local Only');
+        }
+      });
     }
-  } catch(e) { /* offline ok */ }
-}
+  })();
+};
 
 // ════════════════════════════════════════════════
 // TABS

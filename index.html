@@ -28,46 +28,36 @@
     </script>
 
     <style>
-        /* ── Base ── */
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #E8E5F5;
             color: #1B1D3A;
             margin: 0;
-            padding-bottom: 130px;
+            padding-bottom: 120px;
             overflow-x: hidden;
-            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* ── Glass Cards ── */
         .glass-card {
             background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1.5px solid rgba(255,255,255,0.95);
-            box-shadow: 0 8px 32px rgba(79, 82, 201, 0.07), 0 2px 8px rgba(79,82,201,0.04);
+            border: 1.5px solid rgba(255, 255, 255, 0.95);
+            box-shadow: 0 8px 32px rgba(79, 82, 201, 0.07);
         }
 
-        /* ── Bouncy Press ── */
-        .bouncy { transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; }
-        .bouncy:active { transform: scale(0.91); }
+        .bouncy { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; }
+        .bouncy:active { transform: scale(0.92); }
 
-        /* ── Nav Pill ── */
         .nav-pill {
             background: #1B1D3A;
-            box-shadow: 0 16px 48px rgba(27, 29, 58, 0.35), 0 4px 12px rgba(27,29,58,0.2);
+            box-shadow: 0 16px 48px rgba(27, 29, 58, 0.35);
         }
 
-        /* ── Tab System ── */
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: slideUp 0.38s cubic-bezier(0.22, 1, 0.36, 1); }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(22px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+        .tab-content.active { display: block; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* ── Forms ── */
         .form-input, select, textarea {
             width: 100%;
             padding: 14px 16px;
@@ -80,13 +70,12 @@
             font-size: 14px;
             color: #1B1D3A;
         }
-        .form-input:focus, select:focus, textarea:focus {
+        .form-input:focus, select:focus {
             border-color: #4F52C9;
-            box-shadow: 0 0 0 4px rgba(79,82,201,0.12);
+            box-shadow: 0 0 0 4px rgba(79, 82, 201, 0.1);
             background: #ffffff;
         }
 
-        /* ── Modals ── */
         .modal {
             display: none;
             position: fixed;
@@ -94,360 +83,107 @@
             z-index: 1000;
             align-items: center;
             justify-content: center;
-            background: rgba(27,29,58,0.55);
+            background: rgba(27, 29, 58, 0.6);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
         }
-        .modal.active { display: flex; animation: fadeIn 0.22s ease; }
+        .modal.active { display: flex; animation: fadeIn 0.2s; }
         .modal-content {
-            background: #ffffff;
+            background: white;
             border-radius: 2rem;
             padding: 2rem;
             width: 92%;
-            max-width: 560px;
-            max-height: 88vh;
+            max-width: 600px;
+            max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 32px 64px -12px rgba(27,29,58,0.28), 0 8px 24px rgba(79,82,201,0.08);
+            box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.25);
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* ── Utilities ── */
         .profit-positive { color: #10b981; font-weight: 800; }
         .profit-negative { color: #f43f5e; font-weight: 800; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .drag-over { border-color: #4F52C9 !important; background: rgba(79,82,201,0.05) !important; }
 
-        /* ── Logo Gradient ── */
-        .logo-gradient {
-            background: linear-gradient(90deg, #4F52C9 0%, #E040A0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* ── Settings Button ── */
-        .settings-btn {
-            width: 48px;
-            height: 48px;
-            background: #ffffff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 16px rgba(79,82,201,0.12), 0 1px 4px rgba(0,0,0,0.06);
-            border: none;
-        }
-
-        /* ── Stat Cards ── */
-        .stat-card-white {
-            background: rgba(255,255,255,0.9);
-            border: 1.5px solid rgba(255,255,255,1);
-            border-radius: 1.75rem;
-            box-shadow: 0 6px 24px rgba(79,82,201,0.06);
-        }
-        .stat-card-purple {
-            background: #4F52C9;
-            border-radius: 1.75rem;
-            box-shadow: 0 12px 32px rgba(79,82,201,0.32);
-        }
-
-        /* ── Search Bar ── */
-        .search-wrap {
-            flex: 1;
-            background: rgba(255,255,255,0.9);
-            border: 1.5px solid rgba(255,255,255,1);
-            border-radius: 9999px;
-            display: flex;
-            align-items: center;
-            padding: 0 18px;
-            height: 52px;
-            box-shadow: 0 4px 16px rgba(79,82,201,0.07);
-        }
-        .search-wrap input {
-            background: transparent;
-            border: none;
-            outline: none;
-            width: 100%;
-            font-size: 14px;
-            font-weight: 600;
-            color: #1B1D3A;
-            font-family: inherit;
-        }
-        .search-wrap input::placeholder { color: #9CA3AF; font-weight: 500; }
-        .filter-btn {
-            width: 52px;
-            height: 52px;
-            background: rgba(255,255,255,0.9);
-            border: 1.5px solid rgba(255,255,255,1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 16px rgba(79,82,201,0.07);
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        /* ── Inventory Table ── */
-        .inventory-card {
-            background: rgba(255,255,255,0.9);
-            border: 1.5px solid rgba(255,255,255,1);
-            border-radius: 1.75rem;
-            overflow: hidden;
-            box-shadow: 0 6px 24px rgba(79,82,201,0.06);
-        }
-        .inventory-card table { width: 100%; border-collapse: collapse; }
-        .inventory-card thead th {
-            padding: 14px 18px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #9CA3AF;
-            border-bottom: 1.5px solid #F3F4F6;
-        }
-        .inventory-card tbody tr {
-            border-bottom: 1px solid #F3F4F6;
-            transition: background 0.15s;
-            cursor: pointer;
-        }
-        .inventory-card tbody tr:last-child { border-bottom: none; }
-        .inventory-card tbody tr:hover { background: #FAFAFF; }
-        .inventory-card td { padding: 14px 18px; }
-
-        /* ── Item Avatar ── */
-        .item-avatar {
-            width: 40px;
-            height: 40px;
-            background: #DDE3F9;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 15px;
-            color: #4F52C9;
-            flex-shrink: 0;
-        }
-
-        /* ── Kanban ── */
         .kanban-col {
-            background: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.45);
             border: 1.5px solid rgba(255,255,255,0.8);
             border-radius: 1.5rem;
             padding: 18px;
             min-width: 240px;
             flex-shrink: 0;
         }
-        .kanban-badge {
-            background: #ffffff;
-            padding: 3px 10px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: 700;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-            color: #1B1D3A;
-        }
-
-        /* ── Mileage sub-cards ── */
-        .miles-card-gray { background: rgba(234,232,248,0.5); border-radius: 1.5rem; padding: 18px; }
-        .miles-card-green { background: #F0FDF4; border-radius: 1.5rem; padding: 18px; }
-
-        /* ── Trip Banner ── */
-        .trip-banner {
-            background: linear-gradient(135deg, #f97316, #fb923c);
-            border-radius: 1.75rem;
-            box-shadow: 0 12px 32px rgba(249,115,22,0.28);
-        }
-
-        /* ── Primary Button ── */
-        .btn-primary {
-            background: #4F52C9;
-            color: #ffffff;
-            font-weight: 700;
-            border-radius: 9999px;
-            padding: 12px 22px;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            border: none;
-            box-shadow: 0 6px 20px rgba(79,82,201,0.32);
-            cursor: pointer;
-            font-family: inherit;
-        }
-        .btn-ghost {
-            background: rgba(255,255,255,0.88);
-            border: 1.5px solid rgba(255,255,255,1);
-            color: #4F52C9;
-            font-weight: 700;
-            border-radius: 9999px;
-            padding: 12px 20px;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            font-family: inherit;
-            box-shadow: 0 4px 12px rgba(79,82,201,0.07);
-        }
-
-        /* ── Save Item Full-Width Button ── */
-        .btn-save {
-            width: 100%;
-            background: #4F52C9;
-            color: #ffffff;
-            font-weight: 800;
-            border-radius: 1.25rem;
-            padding: 18px;
-            font-size: 16px;
-            border: none;
-            box-shadow: 0 8px 24px rgba(79,82,201,0.3);
-            cursor: pointer;
-            font-family: inherit;
-            letter-spacing: 0.01em;
-            margin-top: 8px;
-        }
-        .btn-save:active { transform: scale(0.97); }
-
-        /* ── AI Scanner Banner in Modal ── */
-        .ai-scanner-banner {
-            background: #EEEAF8;
-            border: 1.5px solid #DDE3F9;
-            border-radius: 1.25rem;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-        }
-        .ai-scan-btn {
-            background: #4F52C9;
-            color: white;
-            border: none;
-            border-radius: 14px;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        /* ── Close Button ── */
-        .modal-close-btn {
-            position: absolute;
-            top: 18px;
-            right: 18px;
-            background: #F1F3F9;
-            border: none;
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #6B7280;
-        }
-        .modal-close-btn:hover { background: #E5E7F0; }
-
-        /* ── FAB (Center Nav Button) ── */
-        .fab {
-            width: 62px;
-            height: 62px;
-            background: #E040A0;
-            border-radius: 50%;
-            border: 6px solid #E8E5F5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            box-shadow: 0 8px 24px rgba(224,64,160,0.4), 0 0 0 2px rgba(224,64,160,0.15);
-            transform: translateY(-20px);
-            cursor: pointer;
-            flex-shrink: 0;
-        }
     </style>
 </head>
 <body>
 
-    <!-- ══ HEADER ══ -->
-    <header class="px-6 pt-8 pb-4 flex justify-between items-start relative z-10">
+    <header class="px-6 pt-8 pb-2 flex justify-between items-start relative z-10">
         <div>
-            <h1 class="text-[26px] font-extrabold italic tracking-tight logo-gradient leading-none">Reseller Pro</h1>
+            <h1 class="text-[26px] font-extrabold italic tracking-tight bg-gradient-to-r from-brand-primary to-brand-pink bg-clip-text text-transparent leading-none">Reseller Pro</h1>
             <div class="flex items-center gap-2 mt-2">
-                <span id="conn-dot" class="w-2 h-2 bg-green-500 rounded-full" style="box-shadow:0 0 8px #22c55e;"></span>
+                <span id="conn-dot" class="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_#22c55e]"></span>
                 <p id="status-tag" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System Live</p>
             </div>
         </div>
-        <button onclick="document.getElementById('platformModal') && document.getElementById('platformModal').classList.add('active')" class="settings-btn bouncy">
-            <i data-lucide="settings" class="w-5 h-5" style="color:#1B1D3A;"></i>
-        </button>
+        <div class="flex gap-2">
+            <button onclick="document.getElementById('platformModal').classList.add('active')" class="w-12 h-12 bg-white rounded-full flex items-center justify-center bouncy shadow-lg shadow-brand-primary/10">
+                <i data-lucide="settings" class="w-5 h-5 text-brand-dark"></i>
+            </button>
+        </div>
     </header>
 
-    <!-- ══ MAIN CONTENT ══ -->
-    <main class="px-4 space-y-5 max-w-lg mx-auto relative z-10">
+    <main class="px-4 space-y-5 max-w-lg mx-auto relative z-10 mt-4">
 
-        <!-- ── DASHBOARD TAB ── -->
+        <!-- DASHBOARD -->
         <div id="dashboard" class="tab-content active space-y-5">
-            <!-- Revenue / Net Profit Cards -->
             <div class="grid grid-cols-2 gap-4">
-                <div class="stat-card-white p-6">
+                <div class="glass-card p-6 rounded-[1.75rem]">
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Revenue</p>
-                    <h2 id="revenue-val" class="text-3xl font-black text-brand-dark">$0</h2>
+                    <h2 id="revenue-val" class="text-3xl font-black mt-1 text-brand-dark">$0</h2>
                 </div>
-                <div class="stat-card-purple p-6">
+                <div class="bg-brand-primary p-6 rounded-[1.75rem] shadow-lg shadow-brand-primary/30">
                     <p class="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-2">Net Profit</p>
-                    <h2 id="profit-val" class="text-3xl font-black text-white">$0</h2>
+                    <h2 id="profit-val" class="text-3xl font-black mt-1 text-white">$0</h2>
                 </div>
             </div>
 
-            <!-- Active Mileage Widget -->
             <div class="glass-card p-6 rounded-[1.75rem]">
                 <div class="flex justify-between items-center mb-5">
-                    <h3 class="font-bold text-brand-dark flex items-center gap-2 text-[15px]">
-                        <i data-lucide="car" class="w-4 h-4" style="color:#E040A0;"></i>
-                        Active Mileage
-                    </h3>
-                    <button onclick="showTab('mileage')" class="text-[12px] font-bold text-brand-primary bouncy">View All</button>
+                    <h3 class="font-bold text-brand-dark flex items-center gap-2"><i data-lucide="car" class="w-4 h-4 text-brand-pink"></i> Active Mileage</h3>
+                    <button onclick="showTab('mileage')" class="text-xs font-bold text-brand-primary">View All</button>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="miles-card-gray">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Total Miles</p>
-                        <h3 id="totalMiles" class="text-2xl font-extrabold text-brand-dark">0.0</h3>
+                    <div class="bg-brand-secondary/50 p-4 rounded-3xl">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Total Miles</p>
+                        <h3 id="totalMiles" class="text-xl font-extrabold text-brand-dark mt-1">0</h3>
                     </div>
-                    <div class="miles-card-green">
-                        <p class="text-[10px] font-bold text-green-600/70 uppercase tracking-wider mb-1">IRS Deduction</p>
-                        <h3 id="totalMileageDeduction" class="text-2xl font-extrabold text-green-600">$0.00</h3>
-                        <p class="text-[9px] text-green-500 font-bold mt-1">$0.70/mile</p>
+                    <div class="bg-green-50 p-4 rounded-3xl">
+                        <p class="text-[10px] font-bold text-green-600/60 uppercase">IRS Deduction</p>
+                        <h3 id="totalMileageDeduction" class="text-xl font-extrabold text-green-600 mt-1">$0</h3>
+                        <p class="text-[9px] text-green-600 font-bold mt-1">$0.70/mile</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ── INVENTORY TAB ── -->
+        <!-- INVENTORY -->
         <div id="inventory" class="tab-content space-y-4">
-            <!-- Search Bar -->
             <div class="flex gap-3 items-center">
-                <div class="search-wrap">
-                    <i data-lucide="search" class="w-4 h-4 mr-3 flex-shrink-0" style="color:#9CA3AF;"></i>
-                    <input type="text" id="searchInput" oninput="renderInventory()" placeholder="Search items, SKU...">
+                <div class="flex-1 glass-card rounded-full flex items-center px-5 py-3 shadow-sm" style="height:52px;">
+                    <i data-lucide="search" class="w-4 h-4 text-gray-400 mr-3 flex-shrink-0"></i>
+                    <input type="text" id="searchInput" oninput="renderInventory()" class="bg-transparent border-none outline-none w-full text-sm font-semibold" placeholder="Search items, SKU...">
                 </div>
-                <div class="filter-btn bouncy">
-                    <i data-lucide="filter" class="w-4 h-4" style="color:#4F52C9;"></i>
-                </div>
+                <button class="glass-card w-[52px] h-[52px] rounded-full flex items-center justify-center bouncy flex-shrink-0">
+                    <i data-lucide="filter" class="w-4 h-4 text-brand-primary"></i>
+                </button>
             </div>
 
-            <!-- Inventory Table Card -->
-            <div class="inventory-card">
-                <table id="inventoryTable">
+            <div class="glass-card rounded-[1.75rem] overflow-hidden p-2">
+                <table id="inventoryTable" class="w-full text-left border-collapse">
                     <thead>
-                        <tr>
-                            <th class="text-left cursor-pointer" onclick="sortInventory('name')">Item Info</th>
-                            <th class="text-right cursor-pointer" onclick="sortInventory('sale_price')">Sales</th>
+                        <tr class="text-[10px] uppercase text-gray-400 border-b border-gray-100">
+                            <th class="p-4 font-bold cursor-pointer" onclick="sortInventory('name')">Item Info</th>
+                            <th class="p-4 font-bold text-right cursor-pointer" onclick="sortInventory('sale_price')">Sales</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryBody"></tbody>
@@ -455,60 +191,56 @@
             </div>
         </div>
 
-        <!-- ── TASKS TAB ── -->
+        <!-- TASKS -->
         <div id="tasks" class="tab-content space-y-5">
             <h2 class="text-xl font-extrabold px-1">Workflows &amp; Tasks</h2>
-            <div class="flex overflow-x-auto gap-4 pb-2 no-scrollbar" id="kanban-container">
+            <div class="flex overflow-x-auto gap-4 pb-4 no-scrollbar" id="kanban-container">
                 <div class="kanban-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-sm text-brand-dark">To List</h3>
-                        <span class="kanban-badge">0</span>
+                    <div class="flex justify-between items-center mb-4 px-2">
+                        <h3 class="font-bold text-sm">To List</h3>
+                        <span class="bg-white px-2 py-1 rounded-md text-[10px] font-bold shadow-sm">0</span>
                     </div>
                     <div class="space-y-3" id="todo-list"></div>
                 </div>
                 <div class="kanban-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-sm text-brand-dark">Active</h3>
-                        <span class="kanban-badge">0</span>
+                    <div class="flex justify-between items-center mb-4 px-2">
+                        <h3 class="font-bold text-sm">Active</h3>
+                        <span class="bg-white px-2 py-1 rounded-md text-[10px] font-bold shadow-sm">0</span>
                     </div>
                     <div class="space-y-3" id="active-list"></div>
                 </div>
             </div>
         </div>
 
-        <!-- ── MILEAGE TAB ── -->
+        <!-- MILEAGE -->
         <div id="mileage" class="tab-content space-y-5">
             <div class="flex justify-between items-center px-1">
-                <h2 class="text-xl font-extrabold flex items-center gap-2">🚗 Tracker</h2>
+                <h2 class="text-xl font-extrabold">🚗 Tracker</h2>
                 <div class="flex gap-2">
-                    <button id="startTripBtn" onclick="toggleTrip()" class="btn-primary bouncy">
-                        <span id="tripBtnIcon" style="font-size:13px;">▶</span>
-                        <span id="tripBtnText">Start Trip</span>
+                    <button id="startTripBtn" onclick="toggleTrip()" class="bg-brand-primary text-white px-5 py-3 rounded-full font-bold text-sm shadow-lg shadow-brand-primary/30 bouncy flex items-center gap-2">
+                        <span id="tripBtnIcon">▶️</span> <span id="tripBtnText">Start Trip</span>
                     </button>
-                    <button onclick="openManualTripModal()" class="btn-ghost bouncy">+ Log</button>
+                    <button onclick="openManualTripModal()" class="glass-card px-4 py-3 rounded-full font-bold text-sm bouncy text-brand-primary">+ Log</button>
                 </div>
             </div>
 
-            <!-- Live Trip Banner -->
-            <div id="liveTripBanner" class="trip-banner p-6 text-white hidden relative overflow-hidden">
+            <div id="liveTripBanner" class="bg-gradient-to-r from-orange-500 to-orange-400 rounded-[1.75rem] p-6 text-white shadow-xl hidden relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-32 h-full opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMSI+PC9yZWN0Pgo8L3N2Zz4=')]"></div>
                 <div class="flex justify-between items-center relative z-10">
                     <div>
-                        <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> In Progress
+                        <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 mb-1">
+                            <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> IN PROGRESS
                         </div>
                         <div id="tripTimer" class="text-4xl font-black tracking-tighter">00:00:00</div>
                     </div>
-                    <button onclick="stopTrip()" class="bg-white/20 border border-white/40 px-5 py-3 rounded-2xl font-bold bouncy text-sm">⏹ End</button>
+                    <button onclick="stopTrip()" class="bg-white/20 border border-white/40 px-5 py-3 rounded-2xl font-bold bouncy backdrop-blur-md">⏹ End</button>
                 </div>
             </div>
 
-            <!-- Trip Log Table -->
-            <div class="inventory-card">
-                <table class="w-full border-collapse">
+            <div class="glass-card rounded-[1.75rem] overflow-hidden p-2">
+                <table class="w-full text-left border-collapse">
                     <tbody id="mileageTripLog">
-                        <tr id="mileageEmpty">
-                            <td class="p-8 text-center text-gray-400 text-sm font-medium">No trips recorded yet.</td>
-                        </tr>
+                        <tr id="mileageEmpty"><td class="p-8 text-center text-gray-400 text-sm font-medium">No trips recorded yet.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -516,74 +248,60 @@
 
     </main>
 
-    <!-- ══ BOTTOM NAV ══ -->
-    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[88%] max-w-[400px] h-[72px] nav-pill rounded-full flex items-center justify-around px-3 z-50">
-        <button onclick="showTab('dashboard')" class="p-3 text-white/50 hover:text-white transition-colors bouncy">
-            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+    <!-- BOTTOM NAV -->
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md h-20 nav-pill rounded-full flex items-center justify-around px-2 z-50">
+        <button onclick="showTab('dashboard')" class="p-4 text-white/50 hover:text-white transition-all bouncy"><i data-lucide="layout-dashboard"></i></button>
+        <button onclick="showTab('inventory')" class="p-4 text-white/50 hover:text-white transition-all bouncy"><i data-lucide="package"></i></button>
+        
+        <button onclick="openModal()" class="w-16 h-16 bg-brand-pink rounded-full -translate-y-6 border-[6px] border-[#E8E5F5] flex items-center justify-center text-white shadow-xl shadow-brand-pink/30 bouncy">
+            <i data-lucide="plus" class="w-8 h-8"></i>
         </button>
-        <button onclick="showTab('inventory')" class="p-3 text-white/50 hover:text-white transition-colors bouncy">
-            <i data-lucide="package" class="w-5 h-5"></i>
-        </button>
-
-        <!-- FAB -->
-        <button onclick="openModal()" class="fab bouncy">
-            <i data-lucide="plus" class="w-7 h-7"></i>
-        </button>
-
-        <button onclick="showTab('tasks')" class="p-3 text-white/50 hover:text-white transition-colors bouncy">
-            <i data-lucide="clipboard-list" class="w-5 h-5"></i>
-        </button>
-        <button onclick="showTab('mileage')" class="p-3 text-white/50 hover:text-white transition-colors bouncy">
-            <i data-lucide="navigation" class="w-5 h-5"></i>
-        </button>
+        
+        <button onclick="showTab('tasks')" class="p-4 text-white/50 hover:text-white transition-all bouncy"><i data-lucide="clipboard-list"></i></button>
+        <button onclick="showTab('mileage')" class="p-4 text-white/50 hover:text-white transition-all bouncy"><i data-lucide="navigation"></i></button>
     </nav>
 
-    <!-- ══ ADD ITEM MODAL ══ -->
+    <!-- ITEM MODAL -->
     <div id="itemModal" class="modal">
         <div class="modal-content relative">
-            <button onclick="closeModal()" class="modal-close-btn bouncy">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-
-            <h2 class="text-xl font-extrabold mb-6" id="modalTitle">Add New Stock</h2>
-
-            <!-- AI Scanner Banner -->
-            <div class="ai-scanner-banner">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-brand-dark bg-gray-100 rounded-full p-2 bouncy"><i data-lucide="x" class="w-5 h-5"></i></button>
+            
+            <h2 class="text-xl font-extrabold mb-6" id="modalTitle">Add New Item</h2>
+            
+            <div class="bg-brand-secondary/50 rounded-2xl p-4 mb-6 flex justify-between items-center border border-brand-accent">
                 <div>
-                    <p class="text-xs font-bold text-brand-primary uppercase tracking-wider">Groq AI Scanner</p>
-                    <p class="text-[11px] text-gray-500 mt-0.5">Auto-fill details from a photo</p>
+                    <p class="text-xs font-bold text-brand-primary uppercase">Groq AI Scanner</p>
+                    <p class="text-[10px] text-gray-500">Auto-fill details from a photo</p>
                 </div>
-                <button onclick="runAIScan()" class="ai-scan-btn bouncy">
-                    <i data-lucide="scan" class="w-5 h-5"></i>
-                </button>
+                <button onclick="runAIScan()" class="bg-brand-primary text-white p-2 rounded-xl bouncy"><i data-lucide="scan" class="w-5 h-5"></i></button>
             </div>
 
-            <form id="itemForm" onsubmit="saveItem(event)" class="space-y-5">
+            <form id="itemForm" onsubmit="saveItem(event)" class="space-y-4">
                 <div class="flex gap-4">
                     <div class="flex-1">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">Item Name</label>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Item Name</label>
                         <input type="text" id="itemName" required class="form-input">
                     </div>
-                    <div class="w-[38%]">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">SKU</label>
+                    <div class="w-1/3">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">SKU</label>
                         <input type="text" id="itemSKU" class="form-input text-xs font-mono" placeholder="Auto">
-                        <button type="button" onclick="generateSKU()" class="text-[10px] text-brand-primary font-bold mt-1.5 ml-1">Generate</button>
+                        <button type="button" onclick="generateSKU()" class="text-[9px] text-brand-primary font-bold mt-1 ml-2">Generate</button>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">Cost Price</label>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Cost Price</label>
                         <input type="number" id="purchasePrice" step="0.01" class="form-input">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">Sale Price</label>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Sale Price</label>
                         <input type="number" id="salePrice" step="0.01" class="form-input">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">Category</label>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Category</label>
                     <select id="itemCategory" class="form-input">
                         <option value="Electronics">Electronics</option>
                         <option value="Clothing">Clothing</option>
@@ -591,45 +309,41 @@
                         <option value="General">General/Other</option>
                     </select>
                 </div>
-
-                <button type="submit" class="btn-save bouncy">Save Item</button>
+                
+                <button type="submit" class="w-full bg-brand-primary text-white font-bold py-4 rounded-2xl mt-4 shadow-lg bouncy">Save Item</button>
             </form>
         </div>
     </div>
 
-    <!-- ══ MANUAL TRIP MODAL ══ -->
+    <!-- MANUAL TRIP MODAL -->
     <div id="manualTripModal" class="modal">
         <div class="modal-content relative">
-            <button onclick="closeManualTripModal()" class="modal-close-btn bouncy">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
+            <button onclick="closeManualTripModal()" class="absolute top-4 right-4 text-gray-400 bg-gray-100 p-2 rounded-full bouncy"><i data-lucide="x" class="w-4 h-4"></i></button>
             <h2 class="text-xl font-extrabold mb-6" id="manualTripModalTitle">Log Manual Trip</h2>
-            <form id="manualTripForm" onsubmit="saveManualTrip(event)" class="space-y-5">
+            <form id="manualTripForm" onsubmit="saveManualTrip(event)" class="space-y-4">
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">Total Miles</label>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Total Miles</label>
                     <input type="number" id="mileageQuickMiles" step="0.1" required class="form-input text-lg font-bold">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">Purpose</label>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Purpose</label>
                     <input type="text" id="mileageQuickPurpose" placeholder="e.g. Sourcing Run" required class="form-input">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">Date</label>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Date</label>
                     <input type="date" id="mileageQuickDate" required class="form-input">
                 </div>
-                <button type="submit" class="btn-save bouncy">Save Trip</button>
+                <button type="submit" class="w-full bg-brand-primary text-white font-bold py-4 rounded-2xl shadow-lg bouncy">Save Trip</button>
             </form>
         </div>
     </div>
 
-    <!-- ══ PLATFORM MODAL (settings) ══ -->
+    <!-- PLATFORM / SETTINGS MODAL -->
     <div id="platformModal" class="modal">
         <div class="modal-content relative">
-            <button onclick="document.getElementById('platformModal').classList.remove('active')" class="modal-close-btn bouncy">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
+            <button onclick="document.getElementById('platformModal').classList.remove('active')" class="absolute top-4 right-4 text-gray-400 bg-gray-100 p-2 rounded-full bouncy"><i data-lucide="x" class="w-4 h-4"></i></button>
             <h2 class="text-xl font-extrabold mb-6">Settings</h2>
-            <p class="text-sm text-gray-400">Platform and settings configuration coming soon.</p>
+            <p class="text-sm text-gray-400">Platform and settings configuration.</p>
         </div>
     </div>
 
@@ -715,18 +429,18 @@
 
                 if(item.name && item.name.toLowerCase().includes(term)) {
                     const row = document.createElement('tr');
-                    row.className = "bouncy";
+                    row.className = "border-b border-gray-100 hover:bg-gray-50 transition-all cursor-pointer bouncy";
                     row.innerHTML = `
                         <td class="p-4">
                             <div class="flex items-center gap-3">
-                                <div class="item-avatar">${item.name[0]}</div>
+                                <div class="w-10 h-10 bg-brand-accent/50 rounded-xl flex items-center justify-center font-bold text-brand-primary">${item.name[0]}</div>
                                 <div>
                                     <h4 class="font-bold text-sm text-brand-dark">${item.name}</h4>
-                                    <p class="text-[9px] text-gray-400 font-mono uppercase mt-0.5">${item.sku || 'NO-SKU'}</p>
+                                    <p class="text-[9px] text-gray-400 font-mono">${item.sku || 'NO-SKU'}</p>
                                 </div>
                             </div>
                         </td>
-                        <td class="p-4 text-right font-black text-brand-primary text-[15px]">$${sale.toFixed(2)}</td>
+                        <td class="p-4 text-right font-black text-brand-primary">$${sale.toFixed(2)}</td>
                     `;
                     tbody.appendChild(row);
                 }
@@ -836,16 +550,6 @@
         // AI Scanning Mock Link (Plug your original Groq logic here)
         function runAIScan() {
             alert("Groq AI Scanner Triggered! Image processing initiates here based on your master script.");
-        }
-
-        // Sort inventory stub
-        function sortInventory(field) {
-            inventory.sort((a, b) => {
-                const av = field === 'sale_price' ? Number(a.sale_price || a.sale || 0) : (a.name || '').toLowerCase();
-                const bv = field === 'sale_price' ? Number(b.sale_price || b.sale || 0) : (b.name || '').toLowerCase();
-                return av > bv ? 1 : -1;
-            });
-            renderInventory();
         }
     </script>
 </body>

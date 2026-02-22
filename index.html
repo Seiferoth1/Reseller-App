@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#4F52C9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Reseller Pro</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: { brand: { primary:'#4F52C9', secondary:'#EEEAF8', accent:'#DDE3F9', pink:'#E040A0', dark:'#1B1D3A' } },
+      borderRadius: { '4xl':'2rem', '5xl':'2.5rem' }
+    }
+  }
+}
+</script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#E8E5F5;color:#1B1D3A;margin:0;padding-bottom:130px;overflow-x:hidden;min-height:100vh}
+.glass-card{background:rgba(255,255,255,0.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,0.95);box-shadow:0 8px 32px rgba(79,82,201,0.07)}
+.bouncy{transition:all 0.28s cubic-bezier(0.34,1.56,0.64,1);cursor:pointer}
+.bouncy:active{transform:scale(0.91)}
+.nav-pill{background:#1B1D3A;box-shadow:0 16px 48px rgba(27,29,58,0.35)}
+.tab-content{display:none}
+.tab-content.active{display:block;animation:slideUp 0.35s cubic-bezier(0.22,1,0.36,1)}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.modal{display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;background:rgba(27,29,58,0.6);backdrop-filter:blur(6px)}
+.modal.active{display:flex;animation:fadeIn 0.2s ease}
+.modal-content{background:#fff;border-radius:2rem;padding:2rem;width:92%;max-width:600px;max-height:88vh;overflow-y:auto;box-shadow:0 32px 64px -12px rgba(0,0,0,0.25)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.form-input,select,textarea{width:100%;padding:13px 15px;border-radius:1rem;background:#F3F5FA;border:1.5px solid #E8EAF4;outline:none;transition:0.2s;font-family:inherit;font-size:14px;color:#1B1D3A}
+.form-input:focus,select:focus,textarea:focus{border-color:#4F52C9;box-shadow:0 0 0 4px rgba(79,82,201,0.1);background:#fff}
+.profit-positive{color:#10b981;font-weight:800}
+.profit-negative{color:#f43f5e;font-weight:800}
+.no-scrollbar::-webkit-scrollbar{display:none}
+.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+.drag-over{border:2px dashed #4F52C9!important;background:rgba(79,82,201,0.04)!important}
+.kanban-col{background:rgba(255,255,255,0.45);border:1.5px solid rgba(255,255,255,0.8);border-radius:1.5rem;padding:16px;min-width:260px;flex-shrink:0}
+.task-card{background:#fff;border-radius:1rem;padding:14px;border:1.5px solid #EEEAF8;box-shadow:0 2px 8px rgba(79,82,201,0.05);cursor:grab;transition:all 0.2s}
+.task-card:active{cursor:grabbing;box-shadow:0 8px 24px rgba(79,82,201,0.15);transform:scale(1.02)}
+.task-card.dragging{opacity:0.4}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.item-card{background:#fff;border-radius:1.25rem;overflow:hidden;border:1.5px solid #EEEAF8;box-shadow:0 4px 16px rgba(79,82,201,0.06);cursor:pointer;transition:all 0.2s}
+.item-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(79,82,201,0.12);border-color:#DDE3F9}
+.item-card img{width:100%;height:120px;object-fit:cover}
+.item-card-no-img{width:100%;height:120px;background:#F3F5FA;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#4F52C9}
+.status-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:700}
+.status-unlisted{background:#F3F5FA;color:#64748b}
+.status-listed{background:#FEF9C3;color:#a16207}
+.status-sold{background:#DCFCE7;color:#166534}
+.status-returned{background:#FEE2E2;color:#991b1b}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+.ai-banner{background:#EEEAF8;border:1.5px solid #DDE3F9;border-radius:1.25rem;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.view-toggle button{padding:7px 14px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;background:transparent;color:#94a3b8;font-family:inherit}
+.view-toggle button.active{background:#4F52C9;color:#fff;box-shadow:0 2px 8px rgba(79,82,201,0.25)}
+.gps-active{animation:pulse-gps 1.5s infinite}
+@keyframes pulse-gps{0%,100%{box-shadow:0 0 0 0 rgba(224,64,160,0.4)}50%{box-shadow:0 0 0 8px rgba(224,64,160,0)}}
+.toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:#1B1D3A;color:#fff;padding:12px 24px;border-radius:99px;font-size:13px;font-weight:700;z-index:9999;animation:toastIn 0.3s ease;box-shadow:0 8px 24px rgba(27,29,58,0.25)}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.photo-thumb{width:60px;height:60px;object-fit:cover;border-radius:10px;border:2px solid #EEEAF8;cursor:pointer;flex-shrink:0}
+.photo-thumb:hover{border-color:#4F52C9}
+
+/* ── Sync indicator ── */
+.sync-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:10px;font-weight:700;transition:all 0.3s}
+.sync-pill .sync-dot{width:7px;height:7px;border-radius:50%;transition:background 0.3s}
+.sync-pill.synced{background:#10b981;color:#fff}.sync-pill.synced .sync-dot{background:#a7f3d0;animation:syncPulse 2s infinite}
+.sync-pill.syncing{background:#f59e0b;color:#fff}.sync-pill.syncing .sync-dot{background:#fde68a;animation:syncPulse 0.8s infinite}
+.sync-pill.offline{background:#94a3b8;color:#fff}.sync-pill.offline .sync-dot{background:#e2e8f0}
+.sync-pill.error{background:#f43f5e;color:#fff}.sync-pill.error .sync-dot{background:#fda4af}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+/* ── Login overlay ── */
+.login-overlay{position:fixed;inset:0;background:rgba(27,29,58,0.65);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:2000}
+.login-card{background:#fff;border-radius:2rem;width:380px;max-width:92vw;padding:36px 32px 28px;box-shadow:0 32px 64px rgba(27,29,58,0.25);text-align:center}
+.login-card .login-logo{width:56px;height:56px;background:linear-gradient(135deg,#4F52C9,#E040A0);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:24px;margin-bottom:16px}
+.login-card h2{font-size:22px;font-weight:800;color:#1B1D3A;margin:0 0 6px}
+.login-card p{font-size:13px;color:#94a3b8;margin:0 0 22px}
+.login-input{width:100%;padding:12px 14px;border:1.5px solid #E8EAF4;border-radius:10px;font-size:14px;margin-bottom:12px;box-sizing:border-box;background:#F3F5FA;color:#1B1D3A;outline:none;font-family:inherit;transition:border-color 0.2s}
+.login-input:focus{border-color:#4F52C9;background:#fff}
+.login-btn{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,#4F52C9,#6366f1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.2s;font-family:inherit}
+.login-btn:hover{opacity:0.9}.login-btn:disabled{opacity:0.5;cursor:wait}
+.login-error{color:#f43f5e;font-size:12px;font-weight:600;margin:8px 0;min-height:18px}
+.login-toggle{margin-top:14px;font-size:12px;color:#94a3b8}
+.login-toggle a{color:#4F52C9;cursor:pointer;font-weight:600}
+.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;font-size:11px;color:#94a3b8;font-weight:600}
+.login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:#E8EAF4}
+.skip-btn{width:100%;padding:10px;border:1.5px solid #E8EAF4;border-radius:10px;background:#fff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s;font-family:inherit}
+.skip-btn:hover{background:#F3F5FA}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="px-5 pt-8 pb-2 flex justify-between items-start relative z-10">
+  <div>
+    <h1 class="text-[26px] font-extrabold italic tracking-tight bg-gradient-to-r from-brand-primary to-brand-pink bg-clip-text text-transparent leading-none">Reseller Pro</h1>
+    <div class="flex items-center gap-2 mt-2">
+      <span id="conn-dot" class="w-2 h-2 bg-green-500 rounded-full" style="box-shadow:0 0 8px #22c55e"></span>
+      <p id="status-tag" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System Live</p>
+    </div>
+  </div>
+  <button onclick="document.getElementById('settingsModal').classList.add('active')" class="w-12 h-12 bg-white rounded-full flex items-center justify-center bouncy shadow-lg shadow-brand-primary/10 border border-white">
+    <i data-lucide="settings" class="w-5 h-5 text-brand-dark"></i>
+  </button>
+</header>
+
+<!-- MAIN -->
+<main class="px-4 space-y-5 max-w-lg mx-auto relative z-10 mt-4">
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <div id="dashboard" class="tab-content active space-y-5">
+    <div class="grid grid-cols-2 gap-4">
+      <div class="glass-card p-5 rounded-[1.75rem]">
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Revenue</p>
+        <h2 id="revenue-val" class="text-3xl font-black text-brand-dark">$0</h2>
+        <p id="revenue-sub" class="text-[10px] text-gray-400 mt-1">0 items sold</p>
+      </div>
+      <div class="bg-brand-primary p-5 rounded-[1.75rem] shadow-lg shadow-brand-primary/30">
+        <p class="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Net Profit</p>
+        <h2 id="profit-val" class="text-3xl font-black text-white">$0</h2>
+        <p id="profit-sub" class="text-[10px] text-white/60 mt-1">0% ROI</p>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-3 gap-3">
+      <div class="glass-card p-4 rounded-[1.25rem] text-center">
+        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Inventory</p>
+        <h3 id="dash-inventory-count" class="text-xl font-black text-brand-dark mt-1">0</h3>
+      </div>
+      <div class="glass-card p-4 rounded-[1.25rem] text-center">
+        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Listed</p>
+        <h3 id="dash-listed-count" class="text-xl font-black text-brand-primary mt-1">0</h3>
+      </div>
+      <div class="glass-card p-4 rounded-[1.25rem] text-center">
+        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Tax Reserve</p>
+        <h3 id="dash-tax" class="text-xl font-black text-brand-pink mt-1">$0</h3>
+      </div>
+    </div>
+
+    <!-- Mileage Widget -->
+    <div class="glass-card p-5 rounded-[1.75rem]">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-brand-dark flex items-center gap-2 text-[15px]">
+          <i data-lucide="car" class="w-4 h-4 text-brand-pink"></i> Active Mileage
+        </h3>
+        <button onclick="showTab('mileage')" class="text-[11px] font-bold text-brand-primary bouncy">View All</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-brand-secondary/50 p-4 rounded-3xl">
+          <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Total Miles</p>
+          <h3 id="totalMiles" class="text-2xl font-extrabold text-brand-dark mt-1">0.0</h3>
+        </div>
+        <div class="bg-green-50 p-4 rounded-3xl">
+          <p class="text-[9px] font-bold text-green-600/60 uppercase tracking-wider">IRS Deduction</p>
+          <h3 id="totalMileageDeduction" class="text-2xl font-extrabold text-green-600 mt-1">$0.00</h3>
+          <p class="text-[9px] text-green-600 font-bold mt-1">$0.70/mile</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ INVENTORY ═══ -->
+  <div id="inventory" class="tab-content space-y-4">
+    <!-- Search + Filter + View Toggle -->
+    <div class="flex gap-3 items-center">
+      <div class="flex-1 glass-card rounded-full flex items-center px-4 shadow-sm" style="height:50px">
+        <i data-lucide="search" class="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"></i>
+        <input id="searchInput" oninput="renderInventory()" class="bg-transparent border-none outline-none w-full text-sm font-semibold" placeholder="Search items, SKU...">
+      </div>
+      <div class="view-toggle glass-card rounded-full flex p-1" style="gap:2px">
+        <button id="btn-gallery" class="active" onclick="setView('gallery')"><i data-lucide="layout-grid" style="width:14px;height:14px;display:inline-block"></i></button>
+        <button id="btn-list" onclick="setView('list')"><i data-lucide="list" style="width:14px;height:14px;display:inline-block"></i></button>
+      </div>
+      <select id="statusFilter" onchange="renderInventory()" class="text-[11px] font-bold text-brand-primary border-none outline-none bg-transparent cursor-pointer" style="padding:0;width:auto">
+        <option value="">All</option>
+        <option value="Unlisted">Unlisted</option>
+        <option value="Listed">Listed</option>
+        <option value="Sold">Sold</option>
+        <option value="Returned">Returned</option>
+      </select>
+    </div>
+
+    <!-- Gallery View -->
+    <div id="galleryView" class="gallery-grid"></div>
+
+    <!-- List View -->
+    <div id="listView" class="glass-card rounded-[1.75rem] overflow-hidden p-2" style="display:none">
+      <table id="inventoryTable" class="w-full text-left border-collapse">
+        <thead>
+          <tr class="text-[10px] uppercase text-gray-400 border-b border-gray-100">
+            <th class="p-4 font-bold cursor-pointer" onclick="sortInventory('name')">Item</th>
+            <th class="p-4 font-bold cursor-pointer" onclick="sortInventory('status')">Status</th>
+            <th class="p-4 font-bold text-right cursor-pointer" onclick="sortInventory('sale')">Sale</th>
+            <th class="p-4 font-bold text-right cursor-pointer" onclick="sortInventory('profit')">Profit</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ TASKS ═══ -->
+  <div id="tasks" class="tab-content space-y-5">
+    <div class="flex justify-between items-center px-1">
+      <h2 class="text-xl font-extrabold">Workflows &amp; Tasks</h2>
+      <button onclick="openTaskModal()" class="bg-brand-primary text-white px-4 py-2 rounded-full text-sm font-bold bouncy shadow-md shadow-brand-primary/30">+ Task</button>
+    </div>
+    <div class="flex overflow-x-auto gap-4 pb-2 no-scrollbar" id="kanban-container">
+      <div class="kanban-col" id="col-todo" ondragover="dragOver(event)" ondrop="drop(event,'todo')">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-sm text-brand-dark">To List</h3>
+          <span id="count-todo" class="bg-white px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm">0</span>
+        </div>
+        <div id="todo-list" class="space-y-3 min-h-[60px]"></div>
+      </div>
+      <div class="kanban-col" id="col-active" ondragover="dragOver(event)" ondrop="drop(event,'active')">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-sm text-brand-dark">Active</h3>
+          <span id="count-active" class="bg-white px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm">0</span>
+        </div>
+        <div id="active-list" class="space-y-3 min-h-[60px]"></div>
+      </div>
+      <div class="kanban-col" id="col-done" ondragover="dragOver(event)" ondrop="drop(event,'done')">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-sm text-brand-dark">Done</h3>
+          <span id="count-done" class="bg-white px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm">0</span>
+        </div>
+        <div id="done-list" class="space-y-3 min-h-[60px]"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MILEAGE ═══ -->
+  <div id="mileage" class="tab-content space-y-5">
+    <div class="flex justify-between items-center px-1">
+      <h2 class="text-xl font-extrabold">🚗 Tracker</h2>
+      <div class="flex gap-2">
+        <button id="startTripBtn" onclick="toggleGPSTrip()" class="bg-brand-primary text-white px-5 py-3 rounded-full font-bold text-sm shadow-lg shadow-brand-primary/30 bouncy flex items-center gap-2">
+          <span id="tripBtnIcon">▶</span> <span id="tripBtnText">Start Trip</span>
+        </button>
+        <button onclick="openManualTripModal()" class="glass-card px-4 py-3 rounded-full font-bold text-sm bouncy text-brand-primary">+ Log</button>
+      </div>
+    </div>
+
+    <!-- GPS Status -->
+    <div id="gpsStatusBar" class="hidden glass-card rounded-[1.75rem] p-4 flex items-center gap-3">
+      <div class="w-10 h-10 bg-brand-pink rounded-full flex items-center justify-center flex-shrink-0 gps-active">
+        <i data-lucide="navigation" class="w-5 h-5 text-white"></i>
+      </div>
+      <div class="flex-1">
+        <p class="text-xs font-black text-brand-dark uppercase tracking-wider flex items-center gap-2">
+          <span class="w-2 h-2 bg-brand-pink rounded-full animate-pulse inline-block"></span> Tracking Live
+        </p>
+        <div class="flex gap-4 mt-1">
+          <p class="text-[11px] text-gray-500">Distance: <span id="liveDistance" class="font-bold text-brand-dark">0.0 mi</span></p>
+          <p class="text-[11px] text-gray-500">Time: <span id="tripTimer" class="font-bold text-brand-dark">00:00</span></p>
+        </div>
+      </div>
+      <button onclick="stopGPSTrip()" class="bg-brand-pink text-white px-4 py-2 rounded-full text-xs font-bold bouncy">Stop</button>
+    </div>
+
+    <!-- Trip Log -->
+    <div class="glass-card rounded-[1.75rem] overflow-hidden p-2">
+      <table class="w-full text-left border-collapse">
+        <tbody id="mileageTripLog">
+          <tr id="mileageEmpty"><td class="p-8 text-center text-gray-400 text-sm font-medium">No trips recorded yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] h-[72px] nav-pill rounded-full flex items-center justify-around px-3 z-50">
+  <button onclick="showTab('dashboard')" class="p-3 text-white/50 hover:text-white transition-colors bouncy"><i data-lucide="layout-dashboard" class="w-5 h-5"></i></button>
+  <button onclick="showTab('inventory')" class="p-3 text-white/50 hover:text-white transition-colors bouncy"><i data-lucide="package" class="w-5 h-5"></i></button>
+  <button onclick="openItemModal()" class="w-[62px] h-[62px] bg-brand-pink rounded-full -translate-y-5 border-[6px] border-[#E8E5F5] flex items-center justify-center text-white shadow-xl shadow-brand-pink/40 bouncy" style="flex-shrink:0">
+    <i data-lucide="plus" class="w-7 h-7"></i>
+  </button>
+  <button onclick="showTab('tasks')" class="p-3 text-white/50 hover:text-white transition-colors bouncy"><i data-lucide="clipboard-list" class="w-5 h-5"></i></button>
+  <button onclick="showTab('mileage')" class="p-3 text-white/50 hover:text-white transition-colors bouncy"><i data-lucide="navigation" class="w-5 h-5"></i></button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- ITEM MODAL -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="itemModal" class="modal">
+  <div class="modal-content relative">
+    <button onclick="closeItemModal()" class="absolute top-4 right-4 bg-gray-100 rounded-full p-2 bouncy text-gray-400 hover:text-brand-dark"><i data-lucide="x" class="w-4 h-4"></i></button>
+    <h2 class="text-xl font-extrabold mb-5" id="modalTitle">Add New Stock</h2>
+
+    <!-- AI Scanner Banner -->
+    <div class="ai-banner bouncy" onclick="openAIScanner()">
+      <div>
+        <p class="text-xs font-bold text-brand-primary uppercase tracking-wider">Groq AI Scanner</p>
+        <p class="text-[10px] text-gray-500 mt-0.5">Auto-fill details from a photo</p>
+      </div>
+      <button class="bg-brand-primary text-white p-2.5 rounded-xl bouncy"><i data-lucide="scan" class="w-5 h-5"></i></button>
+    </div>
+
+    <!-- Photo Upload -->
+    <div class="mb-5">
+      <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Photos</label>
+      <div class="flex gap-2 flex-wrap" id="photoPreviewRow">
+        <label class="w-[60px] h-[60px] rounded-xl border-2 border-dashed border-brand-accent flex items-center justify-center cursor-pointer bouncy bg-brand-secondary/30">
+          <i data-lucide="plus" class="w-5 h-5 text-brand-primary"></i>
+          <input type="file" id="photoInput" accept="image/*" multiple class="hidden" onchange="addPhotos(this)">
+        </label>
+      </div>
+    </div>
+
+    <form id="itemForm" onsubmit="saveItem(event)" class="space-y-4">
+      <div class="flex gap-3">
+        <div class="flex-1">
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Item Name</label>
+          <input type="text" id="itemName" required class="form-input" placeholder="e.g. Nike Air Max">
+        </div>
+        <div style="width:38%">
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">SKU</label>
+          <input type="text" id="itemSKU" class="form-input font-mono text-xs" placeholder="Auto">
+          <button type="button" onclick="generateSKU()" class="text-[9px] text-brand-primary font-bold mt-1 ml-1">Generate</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Cost Price</label>
+          <input type="number" id="purchasePrice" step="0.01" min="0" class="form-input" placeholder="0.00">
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Sale Price</label>
+          <input type="number" id="salePrice" step="0.01" min="0" class="form-input" placeholder="0.00">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Platform Fees</label>
+          <input type="number" id="platformFees" step="0.01" min="0" class="form-input" placeholder="0.00">
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Shipping Cost</label>
+          <input type="number" id="shippingCost" step="0.01" min="0" class="form-input" placeholder="0.00">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Category</label>
+          <select id="itemCategory" class="form-input">
+            <option value="Electronics">Electronics</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Shoes">Shoes</option>
+            <option value="Home">Home Goods</option>
+            <option value="Collectibles">Collectibles</option>
+            <option value="Books">Books</option>
+            <option value="General">General/Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Status</label>
+          <select id="itemStatus" class="form-input">
+            <option value="Unlisted">Unlisted</option>
+            <option value="Listed">Listed</option>
+            <option value="Sold">Sold</option>
+            <option value="Returned">Returned</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Platform / Source</label>
+        <input type="text" id="itemPlatform" class="form-input" placeholder="eBay, Poshmark, Thrift Store...">
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Notes</label>
+        <textarea id="itemNotes" class="form-input" rows="2" placeholder="Condition, location, details..."></textarea>
+      </div>
+
+      <!-- Profit Preview -->
+      <div class="bg-brand-secondary/50 rounded-2xl p-4 flex justify-between items-center">
+        <div>
+          <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Est. Net Profit</p>
+          <p id="profitPreview" class="text-xl font-black text-brand-primary">$0.00</p>
+        </div>
+        <div>
+          <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Tax Reserve (15%)</p>
+          <p id="taxPreview" class="text-xl font-black text-brand-pink">$0.00</p>
+        </div>
+      </div>
+
+      <input type="hidden" id="editingItemId">
+      <button type="submit" class="w-full bg-brand-primary text-white font-bold py-4 rounded-2xl shadow-lg bouncy text-[15px]">Save Item</button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- ITEM DETAIL MODAL -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="itemDetailModal" class="modal">
+  <div class="modal-content relative">
+    <button onclick="document.getElementById('itemDetailModal').classList.remove('active')" class="absolute top-4 right-4 bg-gray-100 rounded-full p-2 bouncy text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+    <div id="itemDetailContent"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- AI SCANNER MODAL -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="aiScanModal" class="modal">
+  <div class="modal-content relative" style="max-width:480px">
+    <button onclick="closeAIScanner()" class="absolute top-4 right-4 bg-gray-100 rounded-full p-2 bouncy text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+    <h2 class="text-xl font-extrabold mb-2">🤖 AI Item Scanner</h2>
+    <p class="text-xs text-gray-400 mb-5">Take or upload a photo — AI fills in all details instantly.</p>
+    <div id="aiStep1">
+      <div id="cameraPreviewWrap" class="hidden rounded-2xl overflow-hidden mb-4 bg-black" style="aspect-ratio:4/3">
+        <video id="cameraPreview" autoplay playsinline class="w-full h-full object-cover"></video>
+      </div>
+      <div id="aiImagePreviewWrap" class="hidden mb-4 rounded-2xl overflow-hidden">
+        <img id="aiImagePreview" class="w-full rounded-2xl object-contain" style="max-height:220px">
+      </div>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <button onclick="startCamera()" class="bg-brand-primary text-white px-5 py-3 rounded-full font-bold text-sm bouncy flex items-center gap-2">
+          <i data-lucide="camera" class="w-4 h-4"></i> Camera
+        </button>
+        <label class="glass-card px-5 py-3 rounded-full font-bold text-sm bouncy text-brand-primary cursor-pointer flex items-center gap-2">
+          <i data-lucide="image" class="w-4 h-4"></i> Upload
+          <input type="file" id="aiFileInput" accept="image/*" class="hidden" onchange="aiFileSelected(this)">
+        </label>
+        <button id="captureBtn" onclick="captureFromCamera()" class="hidden bg-brand-pink text-white px-5 py-3 rounded-full font-bold text-sm bouncy">📸 Capture</button>
+      </div>
+      <canvas id="aiCanvas" class="hidden"></canvas>
+    </div>
+    <div id="aiStep2" class="hidden text-center py-10">
+      <div class="text-4xl mb-3" style="animation:spin 1s linear infinite;display:inline-block">⚙️</div>
+      <p class="font-bold text-brand-dark">Analyzing image…</p>
+      <p class="text-xs text-gray-400 mt-1">Groq Vision is identifying your item</p>
+    </div>
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    <div id="aiStep3" class="hidden space-y-3">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">AI Detected — Edit &amp; Apply</p>
+      <div id="aiResultFields" class="space-y-3"></div>
+      <div class="flex gap-3 mt-4">
+        <button onclick="applyAIResults()" class="flex-1 bg-brand-primary text-white font-bold py-3 rounded-2xl bouncy">✅ Fill Form</button>
+        <button onclick="resetAIScanner()" class="flex-1 glass-card text-brand-primary font-bold py-3 rounded-2xl bouncy border border-brand-accent">🔄 Retry</button>
+      </div>
+    </div>
+    <div id="aiError" class="hidden text-center py-8">
+      <p class="text-brand-pink font-bold mb-3" id="aiErrorMsg">Could not analyze image.</p>
+      <button onclick="resetAIScanner()" class="glass-card px-5 py-3 rounded-full font-bold text-sm text-brand-primary bouncy">Try Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TASK MODAL -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="taskModal" class="modal">
+  <div class="modal-content relative">
+    <button onclick="closeTaskModal()" class="absolute top-4 right-4 bg-gray-100 rounded-full p-2 bouncy text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+    <h2 class="text-xl font-extrabold mb-5" id="taskModalTitle">New Task</h2>
+    <form id="taskForm" onsubmit="saveTask(event)" class="space-y-4">
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Task Title</label>
+        <input type="text" id="taskTitle" required class="form-input" placeholder="e.g. List Nike shoes on eBay">
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Details</label>
+        <textarea id="taskDetails" class="form-input" rows="2" placeholder="Any extra notes..."></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Priority</label>
+          <select id="taskPriority" class="form-input">
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Column</label>
+          <select id="taskColumn" class="form-input">
+            <option value="todo">To List</option>
+            <option value="active">Active</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Linked Item (optional)</label>
+        <select id="taskLinkedItem" class="form-input"><option value="">None</option></select>
+      </div>
+      <input type="hidden" id="editingTaskId">
+      <button type="submit" class="w-full bg-brand-primary text-white font-bold py-4 rounded-2xl shadow-lg bouncy">Save Task</button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- MANUAL TRIP MODAL -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="manualTripModal" class="modal">
+  <div class="modal-content relative">
+    <button onclick="closeManualTripModal()" class="absolute top-4 right-4 bg-gray-100 rounded-full p-2 bouncy text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+    <h2 class="text-xl font-extrabold mb-5" id="manualTripModalTitle">Log Trip</h2>
+    <form id="manualTripForm" onsubmit="saveManualTrip(event)" class="space-y-4">
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Total Miles</label>
+        <input type="number" id="mileageQuickMiles" step="0.01" min="0" required class="form-input text-lg font-bold">
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Purpose</label>
+        <input type="text" id="mileageQuickPurpose" placeholder="e.g. Sourcing Run" required class="form-input">
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date</label>
+        <input type="date" id="mileageQuickDate" required class="form-input">
+      </div>
+      <div class="bg-green-50 rounded-2xl p-4 flex justify-between items-center">
+        <p class="text-xs font-bold text-green-700">IRS Deduction</p>
+        <p id="tripDeductionPreview" class="text-lg font-black text-green-600">$0.00</p>
+      </div>
+      <button type="submit" class="w-full bg-brand-primary text-white font-bold py-4 rounded-2xl shadow-lg bouncy">Save Trip</button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SETTINGS MODAL -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="settingsModal" class="modal">
+  <div class="modal-content relative">
+    <button onclick="document.getElementById('settingsModal').classList.remove('active')" class="absolute top-4 right-4 bg-gray-100 rounded-full p-2 bouncy text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+    <h2 class="text-xl font-extrabold mb-5">Settings</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Groq API Key</label>
+        <input type="password" id="groqKeyInput" class="form-input font-mono text-xs" placeholder="gsk_...">
+        <button onclick="saveGroqKey()" class="text-[10px] text-brand-primary font-bold mt-1 ml-1">Save Key</button>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Tax Rate (%)</label>
+        <input type="number" id="taxRateInput" class="form-input" value="15.3" step="0.1" min="0" max="100">
+      </div>
+      <button onclick="exportData()" class="w-full glass-card text-brand-primary font-bold py-3 rounded-2xl bouncy border border-brand-accent">📤 Export Data (JSON)</button>
+      <button onclick="clearAllData()" class="w-full text-rose-500 font-bold py-3 rounded-2xl bouncy text-sm">Clear All Local Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">📦</div>
+    <h2 id="loginTitle">Welcome Back</h2>
+    <p id="loginSubtitle">Sign in to sync your data across devices</p>
+    <div id="loginError" class="login-error"></div>
+    <form id="loginForm" onsubmit="handleAuth(event)">
+      <input class="login-input" id="authEmail" type="email" placeholder="Email address" required>
+      <input class="login-input" id="authPassword" type="password" placeholder="Password" required minlength="6">
+      <button type="submit" class="login-btn" id="authSubmitBtn">Sign In</button>
+    </form>
+    <div class="login-toggle" id="loginToggle">
+      Don't have an account? <a onclick="toggleAuthMode()">Sign Up</a>
+    </div>
+    <div class="login-divider">or</div>
+    <button class="skip-btn" onclick="skipLogin()">Continue offline (local only)</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toastEl" class="toast hidden"></div>
+
+<script>
+// ════════════════════════════════════════════════
+// SUPABASE + AUTH
+// ════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://pglbroqrzchalfivhxju.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbGJyb3FyemNoYWxmaXZoeGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzczNjksImV4cCI6MjA4Njg1MzM2OX0.txVH7ywpKEC1bGnufqF36bwqWLIiTdmNmx9ZYYN2n_Q';
+
+let sbClient = null;
+let currentUser = null;
+let authMode = 'login';
+let syncEnabled = false;
+let syncDebounceTimer = null;
+let _pollInterval = null;
+let _lastCloudTs = null;
+let _realtimeChannel = null;
+
+function getGroqKey() { return localStorage.getItem('reseller_groq_key') || ''; }
+function setGroqKey(k) { localStorage.setItem('reseller_groq_key', k.trim()); }
+
+function initSupabase() {
+  if (sbClient) return true;
+  const sb = window.supabase;
+  if (!sb) return false;
+  const createFn = sb.createClient || (sb.default && sb.default.createClient);
+  if (!createFn) return false;
+  try { sbClient = createFn(SUPABASE_URL, SUPABASE_ANON); return true; }
+  catch(e) { console.warn('Supabase init failed:', e); return false; }
+}
+initSupabase();
+
+// ════════════════════════════════════════════════
+// LOCAL STORAGE — original reseller_* keys
+// ════════════════════════════════════════════════
+function loadFromStorage() {
+  const parse = (key, def) => { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; } };
+  const inv = parse('reseller_inventory', []);
+  inv.forEach(i => { if (i.dateSold) i.dateSold = new Date(i.dateSold); });
+  return { inventory: inv, tasks: parse('reseller_tasks', []), mileage: parse('reseller_mileage', []) };
+}
+
+function saveToLocalStorage() {
+  localStorage.setItem('reseller_inventory', JSON.stringify(inventory));
+  localStorage.setItem('reseller_tasks', JSON.stringify(tasks));
+  localStorage.setItem('reseller_mileage', JSON.stringify(mileageTrips));
+}
+
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+const _stored = loadFromStorage();
+
+const _defaultInventory = [
+  { id:'i1', name:'Vintage Leather Jacket', sku:'VLJ-001', category:'Accessories', platform:'eBay', source:'Poshmark', purchase:44, sale:70, platformFees:0, shippingCost:9.5, status:'Sold', notes:'', photos:[], dateSold:'2026-02-10' },
+  { id:'i2', name:'Beauty Bundle', sku:'BB-002', category:'General', platform:'Poshmark', source:'eBay', purchase:85, sale:465, platformFees:0, shippingCost:10, status:'Sold', notes:'', photos:[], dateSold:'2026-02-02' },
+  { id:'i3', name:'Electronics Lot', sku:'EL-003', category:'Electronics', platform:'Mercari', source:'Goodwill', purchase:33, sale:85, platformFees:0, shippingCost:9.5, status:'Sold', notes:'', photos:[], dateSold:'2026-01-15' },
+  { id:'i4', name:'Auto Parts', sku:'AP-004', category:'General', platform:'Etsy', source:'Bid FTA', purchase:43, sale:85, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-01-20' },
+  { id:'i5', name:'Kids Toys', sku:'KT-005', category:'General', platform:'Depop', source:'Salvation Army', purchase:23, sale:null, platformFees:0, shippingCost:0, status:'Listed', notes:'', photos:[], dateSold:null },
+  { id:'i6', name:'Baby Clothes Bundle', sku:'BCB-006', category:'Clothing', platform:'FB Marketplace', source:'Garage Sale', purchase:33, sale:89, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-02-08' },
+  { id:'i7', name:'Designer Dress', sku:'DD-007', category:'Clothing', platform:'Mercari', source:'Estate Sale', purchase:12, sale:623, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-02-12' },
+  { id:'i8', name:'Laptop', sku:'LP-008', category:'Electronics', platform:'', source:'Walmart', purchase:68, sale:null, platformFees:0, shippingCost:0, status:'Listed', notes:'', photos:[], dateSold:null },
+  { id:'i9', name:'Kitchen Set', sku:'KS-009', category:'Home', platform:'', source:'Amazon', purchase:89, sale:null, platformFees:0, shippingCost:0, status:'Returned', notes:'', photos:[], dateSold:null },
+  { id:'i10', name:'Vinyl Records', sku:'VR-010', category:'General', platform:'Etsy', source:'Facebook', purchase:12, sale:45, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-01-25' },
+  { id:'i11', name:"Men's Suit", sku:'MS-011', category:'Clothing', platform:'Poshmark', source:'Estate Sale', purchase:54, sale:90, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-02-05' },
+  { id:'i12', name:'Gold Necklace', sku:'GN-012', category:'General', platform:'Whatnot', source:'Walmart', purchase:40, sale:null, platformFees:0, shippingCost:0, status:'Unlisted', notes:'', photos:[], dateSold:null },
+  { id:'i13', name:'Rare Books', sku:'RB-013', category:'Books', platform:'OfferUp', source:'OfferUp', purchase:3, sale:41, platformFees:0, shippingCost:0, status:'Sold', notes:'', photos:[], dateSold:'2026-02-11' }
+];
+
+const _defaultMileage = [
+  { id:'m1', date:'2026-01-15', miles:45, purpose:'Estate sale run — east side', deduction:31.50 },
+  { id:'m2', date:'2026-01-22', miles:12, purpose:'Post office + supply pickup', deduction:8.40 },
+  { id:'m3', date:'2026-02-05', miles:28, purpose:'Goodwill + Salvation Army loop', deduction:19.60 },
+  { id:'m4', date:'2026-02-10', miles:8, purpose:'Drop-off at FedEx', deduction:5.60 },
+  { id:'m5', date:'2026-02-14', miles:52, purpose:'Bid FTA warehouse pickup', deduction:36.40 }
+];
+
+let inventory    = _stored.inventory.length ? _stored.inventory : _defaultInventory;
+let tasks        = _stored.tasks;
+let mileageTrips = _stored.mileage.length ? _stored.mileage : _defaultMileage;
+const IRS_RATE = 0.70;
+let currentView = 'gallery';
+let pendingPhotos = [];
+let editingItemId = null;
+let editingTaskId = null;
+let sortField = 'name'; let sortDir = 1;
+let aiResults = {};
+let cameraStream = null;
+
+// GPS
+let gpsWatchId = null;
+let tripActive = false;
+let tripStartTime = null;
+let tripTimerInterval = null;
+let tripTotalMeters = 0;
+let lastCoords = null;
+
+function save() {
+  saveToLocalStorage();
+  clearTimeout(syncDebounceTimer);
+  syncDebounceTimer = setTimeout(syncToCloud, 400);
+}
+
+// ════════════════════════════════════════════════
+// SYNC ENGINE
+// ════════════════════════════════════════════════
+function setSyncStatus(status, label) {
+  const el = document.getElementById('syncPill');
+  const lb = document.getElementById('syncLabel');
+  if (!el) return;
+  el.className = 'sync-pill ' + status;
+  if (lb) lb.textContent = label || status;
+}
+
+async function syncToCloud() {
+  if (!syncEnabled || !sbClient || !currentUser) { setSyncStatus('offline','Local Only'); return; }
+  setSyncStatus('syncing','Syncing...');
+  try {
+    const cleanInv = JSON.parse(JSON.stringify(inventory)).map(item => {
+      if (item.photos && item.photos.length) { item.photoCount = item.photos.length; item.photos = []; }
+      return item;
+    });
+    const { error } = await sbClient.from('reseller_data').upsert({
+      user_id: currentUser.id,
+      inventory: cleanInv,
+      tasks: JSON.parse(JSON.stringify(tasks)),
+      mileage: JSON.parse(JSON.stringify(mileageTrips)),
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+    if (error) throw error;
+    setSyncStatus('synced','Synced');
+  } catch(e) {
+    console.error('Sync failed:', e);
+    setSyncStatus('error','Sync failed');
+  }
+}
+
+async function loadFromCloud() {
+  if (!sbClient || !currentUser) return;
+  setSyncStatus('syncing','Loading...');
+  try {
+    const { data, error } = await sbClient.from('reseller_data').select('*').eq('user_id', currentUser.id).single();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data) {
+      _lastCloudTs = data.updated_at;
+      const photoMap = {};
+      inventory.forEach(i => { if (i.photos && i.photos.length) photoMap[(i.name||'')+'|'+(i.sku||'')] = i.photos; });
+      if (Array.isArray(data.inventory)) {
+        data.inventory.forEach(i => {
+          if (i.dateSold) i.dateSold = new Date(i.dateSold);
+          if (!i.photos || !i.photos.length) { const k=(i.name||'')+'|'+(i.sku||''); i.photos = photoMap[k] || []; }
+        });
+        inventory = data.inventory;
+      }
+      if (Array.isArray(data.tasks)) tasks = data.tasks;
+      if (Array.isArray(data.mileage)) mileageTrips = data.mileage;
+      saveToLocalStorage();
+      setSyncStatus('synced','Synced');
+      renderInventory(); renderTasks(); renderMileage(); updateDashboard();
+    } else { await syncToCloud(); }
+  } catch(e) { console.error('Cloud load failed:', e); setSyncStatus('error','Load failed'); }
+}
+
+function startPolling() {
+  if (_pollInterval) clearInterval(_pollInterval);
+  _pollInterval = setInterval(async () => {
+    if (!syncEnabled || !sbClient || !currentUser) return;
+    try {
+      const { data } = await sbClient.from('reseller_data').select('updated_at').eq('user_id', currentUser.id).single();
+      if (data && data.updated_at !== _lastCloudTs) { _lastCloudTs = data.updated_at; await loadFromCloud(); }
+    } catch(e) {}
+  }, 8000);
+}
+
+function startRealtimeSync() {
+  if (!sbClient || !currentUser) return;
+  if (_realtimeChannel) { try { sbClient.removeChannel(_realtimeChannel); } catch(e) {} }
+  _realtimeChannel = sbClient.channel('reseller_data_changes')
+    .on('postgres_changes', { event:'*', schema:'public', table:'reseller_data', filter:'user_id=eq.'+currentUser.id },
+      async () => { await loadFromCloud(); })
+    .subscribe();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && syncEnabled && currentUser) loadFromCloud();
+});
+
+// ════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════
+function showLoginModal() {
+  authMode = 'login';
+  document.getElementById('loginTitle').textContent = 'Welcome Back';
+  document.getElementById('loginSubtitle').textContent = 'Sign in to sync your data across devices';
+  document.getElementById('authSubmitBtn').textContent = 'Sign In';
+  document.getElementById('loginToggle').innerHTML = "Don't have an account? <a onclick=\"toggleAuthMode()\">Sign Up</a>";
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPassword').value = '';
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  if (authMode === 'signup') {
+    document.getElementById('loginTitle').textContent = 'Create Account';
+    document.getElementById('loginSubtitle').textContent = 'Sign up to sync inventory across all your devices';
+    document.getElementById('authSubmitBtn').textContent = 'Create Account';
+    document.getElementById('loginToggle').innerHTML = "Already have an account? <a onclick=\"toggleAuthMode()\">Sign In</a>";
+  } else {
+    document.getElementById('loginTitle').textContent = 'Welcome Back';
+    document.getElementById('loginSubtitle').textContent = 'Sign in to sync your data across devices';
+    document.getElementById('authSubmitBtn').textContent = 'Sign In';
+    document.getElementById('loginToggle').innerHTML = "Don't have an account? <a onclick=\"toggleAuthMode()\">Sign Up</a>";
+  }
+  document.getElementById('loginError').textContent = '';
+}
+
+function skipLogin() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  syncEnabled = false;
+  setSyncStatus('offline','Local Only');
+}
+
+async function handleAuth(e) {
+  e.preventDefault();
+  initSupabase();
+  if (!sbClient) { document.getElementById('loginError').textContent = 'Connection failed. Check your internet.'; return; }
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = authMode === 'login' ? 'Signing in...' : 'Creating account...';
+  document.getElementById('loginError').textContent = '';
+  let result;
+  if (authMode === 'signup') result = await sbClient.auth.signUp({ email, password });
+  else result = await sbClient.auth.signInWithPassword({ email, password });
+  btn.disabled = false;
+  btn.textContent = authMode === 'login' ? 'Sign In' : 'Create Account';
+  if (result.error) { document.getElementById('loginError').textContent = result.error.message; return; }
+  if (authMode === 'signup' && result.data && result.data.user && !result.data.session) {
+    document.getElementById('loginError').style.color = '#10b981';
+    document.getElementById('loginError').textContent = 'Check your email for a confirmation link!';
+    return;
+  }
+  currentUser = result.data.user;
+  syncEnabled = true;
+  document.getElementById('loginOverlay').style.display = 'none';
+  updateAuthBar();
+  await loadFromCloud();
+  startRealtimeSync();
+  startPolling();
+}
+
+function updateAuthBar() {
+  const bar = document.getElementById('authBar');
+  if (!bar) return;
+  if (currentUser) {
+    const short = (currentUser.email || '').split('@')[0];
+    bar.innerHTML = '<span style="font-size:11px;font-weight:700;color:#1B1D3A">'+short+'</span> <button onclick="handleLogout()" style="font-size:10px;font-weight:700;color:#f43f5e;background:none;border:none;cursor:pointer;margin-left:4px">Sign Out</button>';
+  } else {
+    bar.innerHTML = '<span onclick="showLoginModal()" style="font-size:11px;font-weight:700;color:#4F52C9;cursor:pointer">Sign In</span>';
+  }
+}
+
+async function handleLogout() {
+  if (sbClient) await sbClient.auth.signOut();
+  currentUser = null; syncEnabled = false;
+  updateAuthBar();
+  setSyncStatus('offline','Local Only');
+}
+
+async function checkSession() {
+  initSupabase();
+  if (!sbClient) { setSyncStatus('offline','Local Only'); return; }
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session && session.user) {
+      currentUser = session.user; syncEnabled = true;
+      updateAuthBar();
+      await loadFromCloud();
+      startRealtimeSync(); startPolling();
+      return;
+    }
+  } catch(e) { console.warn('Session check:', e); }
+  setSyncStatus('offline','Local Only');
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+window.onload = () => {
+  lucide.createIcons();
+  renderInventory();
+  renderTasks();
+  renderMileage();
+  updateDashboard();
+  setupProfitPreview();
+
+  const k = localStorage.getItem('reseller_groq_key');
+  if (k) document.getElementById('groqKeyInput').value = k;
+
+  document.getElementById('mileageQuickMiles').addEventListener('input', function() {
+    document.getElementById('tripDeductionPreview').textContent = '$' + (parseFloat(this.value||0)*IRS_RATE).toFixed(2);
+  });
+
+  (async function boot() {
+    await checkSession();
+    if (!currentUser) showLoginModal();
+    if (sbClient) {
+      sbClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session && session.user) {
+          currentUser = session.user; syncEnabled = true;
+          updateAuthBar();
+          await loadFromCloud();
+          startRealtimeSync(); startPolling();
+        } else if (event === 'SIGNED_OUT') {
+          currentUser = null; syncEnabled = false;
+          updateAuthBar(); setSyncStatus('offline','Local Only');
+        }
+      });
+    }
+  })();
+};
+
+// ════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  lucide.createIcons();
+}
+
+// ════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════
+function updateDashboard() {
+  const sold = inventory.filter(i => i.status === 'Sold');
+  const totalRev = sold.reduce((s,i) => s + (Number(i.sale||0)), 0);
+  const totalCost = sold.reduce((s,i) => s + (Number(i.purchase||0)) + (Number(i.platformFees||0)) + (Number(i.shippingCost||0)), 0);
+  const profit = totalRev - totalCost;
+  const taxRate = parseFloat(document.getElementById('taxRateInput')?.value || 15.3) / 100;
+  const tax = Math.max(0, profit * taxRate);
+  const roi = totalCost > 0 ? Math.round((profit/totalCost)*100) : 0;
+
+  document.getElementById('revenue-val').textContent = '$' + totalRev.toLocaleString('en-US',{minimumFractionDigits:0});
+  document.getElementById('profit-val').textContent = '$' + profit.toLocaleString('en-US',{minimumFractionDigits:0});
+  document.getElementById('revenue-sub').textContent = sold.length + ' items sold';
+  document.getElementById('profit-sub').textContent = roi + '% ROI';
+  document.getElementById('dash-inventory-count').textContent = inventory.length;
+  document.getElementById('dash-listed-count').textContent = inventory.filter(i=>i.status==='Listed').length;
+  document.getElementById('dash-tax').textContent = '$' + tax.toFixed(0);
+}
+
+// ════════════════════════════════════════════════
+// INVENTORY
+// ════════════════════════════════════════════════
+function setView(v) {
+  currentView = v;
+  document.getElementById('galleryView').style.display = v==='gallery' ? 'grid' : 'none';
+  document.getElementById('listView').style.display = v==='list' ? 'block' : 'none';
+  document.getElementById('btn-gallery').classList.toggle('active', v==='gallery');
+  document.getElementById('btn-list').classList.toggle('active', v==='list');
+  lucide.createIcons();
+}
+
+function sortInventory(field) {
+  if (sortField === field) sortDir *= -1; else { sortField = field; sortDir = 1; }
+  renderInventory();
+}
+
+function renderInventory() {
+  const term = (document.getElementById('searchInput').value || '').toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+
+  let items = inventory.filter(i => {
+    const matchTerm = !term || (i.name||'').toLowerCase().includes(term) || (i.sku||'').toLowerCase().includes(term);
+    const matchStatus = !statusF || i.status === statusF;
+    return matchTerm && matchStatus;
+  });
+
+  items.sort((a,b) => {
+    let av = sortField==='profit' ? calcProfit(a) : sortField==='sale' ? Number(a.sale||0) : (a[sortField]||'').toString().toLowerCase();
+    let bv = sortField==='profit' ? calcProfit(b) : sortField==='sale' ? Number(b.sale||0) : (b[sortField]||'').toString().toLowerCase();
+    return av > bv ? sortDir : av < bv ? -sortDir : 0;
+  });
+
+  renderGallery(items);
+  renderList(items);
+  updateDashboard();
+}
+
+function calcProfit(item) {
+  return Number(item.sale||0) - Number(item.purchase||0) - Number(item.platformFees||0) - Number(item.shippingCost||0);
+}
+
+function statusColor(s) {
+  return {Unlisted:'status-unlisted', Listed:'status-listed', Sold:'status-sold', Returned:'status-returned'}[s] || 'status-unlisted';
+}
+
+function renderGallery(items) {
+  const el = document.getElementById('galleryView');
+  if (!items.length) { el.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No items yet. Tap + to add stock.</div>'; return; }
+  el.innerHTML = items.map(item => {
+    const profit = calcProfit(item);
+    const photoHTML = item.photos && item.photos[0]
+      ? `<img src="${item.photos[0]}" class="w-full" style="height:120px;object-fit:cover">`
+      : `<div class="item-card-no-img">${(item.name||'?')[0].toUpperCase()}</div>`;
+    return `<div class="item-card bouncy" onclick="openItemDetail('${item.id}')">
+      ${photoHTML}
+      <div class="p-3">
+        <p class="font-bold text-[13px] text-brand-dark truncate">${item.name||'Unnamed'}</p>
+        <p class="text-[9px] text-gray-400 font-mono mb-2">${item.sku||'NO-SKU'}</p>
+        <div class="flex justify-between items-center">
+          <span class="status-pill ${statusColor(item.status)}">${item.status||'Unlisted'}</span>
+          <span class="text-[11px] font-black ${profit>=0?'text-brand-primary':'text-rose-500'}">$${profit.toFixed(0)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderList(items) {
+  const tbody = document.getElementById('inventoryBody');
+  if (!items.length) { tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-400 text-sm">No items match.</td></tr>'; return; }
+  tbody.innerHTML = items.map(item => {
+    const profit = calcProfit(item);
+    return `<tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer bouncy" onclick="openItemDetail('${item.id}')">
+      <td class="p-3">
+        <div class="flex items-center gap-3">
+          ${item.photos&&item.photos[0]
+            ? `<img src="${item.photos[0]}" class="w-10 h-10 rounded-xl object-cover flex-shrink-0">`
+            : `<div class="w-10 h-10 rounded-xl bg-brand-accent/50 flex items-center justify-center font-bold text-brand-primary flex-shrink-0">${(item.name||'?')[0].toUpperCase()}</div>`}
+          <div>
+            <p class="font-bold text-sm text-brand-dark truncate" style="max-width:140px">${item.name||'Unnamed'}</p>
+            <p class="text-[9px] text-gray-400 font-mono">${item.sku||'NO-SKU'}</p>
+          </div>
+        </div>
+      </td>
+      <td class="p-3"><span class="status-pill ${statusColor(item.status)}">${item.status||'Unlisted'}</span></td>
+      <td class="p-3 text-right font-black text-brand-primary text-sm">$${Number(item.sale||0).toFixed(2)}</td>
+      <td class="p-3 text-right font-black text-sm ${profit>=0?'text-emerald-600':'text-rose-500'}">$${profit.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
+// ITEM MODAL
+// ════════════════════════════════════════════════
+function openItemModal(id) {
+  editingItemId = id || null;
+  pendingPhotos = [];
+  document.getElementById('itemForm').reset();
+  document.getElementById('photoPreviewRow').innerHTML = `
+    <label class="w-[60px] h-[60px] rounded-xl border-2 border-dashed border-brand-accent flex items-center justify-center cursor-pointer bouncy bg-brand-secondary/30">
+      <i data-lucide="plus" class="w-5 h-5 text-brand-primary"></i>
+      <input type="file" id="photoInput" accept="image/*" multiple class="hidden" onchange="addPhotos(this)">
+    </label>`;
+  document.getElementById('profitPreview').textContent = '$0.00';
+  document.getElementById('taxPreview').textContent = '$0.00';
+  document.getElementById('editingItemId').value = '';
+
+  if (id) {
+    const item = inventory.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('modalTitle').textContent = 'Edit Item';
+    document.getElementById('itemName').value = item.name || '';
+    document.getElementById('itemSKU').value = item.sku || '';
+    document.getElementById('purchasePrice').value = item.purchase || '';
+    document.getElementById('salePrice').value = item.sale || '';
+    document.getElementById('platformFees').value = item.platformFees || '';
+    document.getElementById('shippingCost').value = item.shippingCost || '';
+    document.getElementById('itemCategory').value = item.category || 'General';
+    document.getElementById('itemStatus').value = item.status || 'Unlisted';
+    document.getElementById('itemPlatform').value = item.platform || '';
+    document.getElementById('itemNotes').value = item.notes || '';
+    document.getElementById('editingItemId').value = id;
+    pendingPhotos = item.photos || [];
+    renderPhotoRow();
+    updateProfitPreview();
+  } else {
+    document.getElementById('modalTitle').textContent = 'Add New Stock';
+  }
+  document.getElementById('itemModal').classList.add('active');
+  lucide.createIcons();
+}
+
+function closeItemModal() {
+  document.getElementById('itemModal').classList.remove('active');
+  stopCamera();
+}
+
+function setupProfitPreview() {
+  ['salePrice','purchasePrice','platformFees','shippingCost'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateProfitPreview);
+  });
+}
+
+function updateProfitPreview() {
+  const sale = parseFloat(document.getElementById('salePrice').value||0);
+  const cost = parseFloat(document.getElementById('purchasePrice').value||0);
+  const fees = parseFloat(document.getElementById('platformFees').value||0);
+  const ship = parseFloat(document.getElementById('shippingCost').value||0);
+  const profit = sale - cost - fees - ship;
+  const taxRate = parseFloat(document.getElementById('taxRateInput')?.value || 15.3) / 100;
+  const tax = Math.max(0, profit * taxRate);
+  document.getElementById('profitPreview').textContent = '$' + profit.toFixed(2);
+  document.getElementById('profitPreview').className = 'text-xl font-black ' + (profit >= 0 ? 'text-brand-primary' : 'text-rose-500');
+  document.getElementById('taxPreview').textContent = '$' + tax.toFixed(2);
+}
+
+function addPhotos(input) {
+  Array.from(input.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      pendingPhotos.push(e.target.result);
+      renderPhotoRow();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoRow() {
+  const row = document.getElementById('photoPreviewRow');
+  row.innerHTML = pendingPhotos.map((p,i) => `
+    <div class="relative">
+      <img src="${p}" class="photo-thumb">
+      <button type="button" onclick="removePhoto(${i})" class="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">×</button>
+    </div>`).join('') + `
+    <label class="w-[60px] h-[60px] rounded-xl border-2 border-dashed border-brand-accent flex items-center justify-center cursor-pointer bouncy bg-brand-secondary/30">
+      <i data-lucide="plus" class="w-5 h-5 text-brand-primary"></i>
+      <input type="file" id="photoInput" accept="image/*" multiple class="hidden" onchange="addPhotos(this)">
+    </label>`;
+  lucide.createIcons();
+}
+
+function removePhoto(i) { pendingPhotos.splice(i,1); renderPhotoRow(); }
+
+function saveItem(e) {
+  e.preventDefault();
+  const id = document.getElementById('editingItemId').value || ('item_' + Date.now());
+  const item = {
+    id,
+    name: document.getElementById('itemName').value.trim(),
+    sku: document.getElementById('itemSKU').value.trim(),
+    purchase: parseFloat(document.getElementById('purchasePrice').value||0),
+    sale: parseFloat(document.getElementById('salePrice').value||0),
+    platformFees: parseFloat(document.getElementById('platformFees').value||0),
+    shippingCost: parseFloat(document.getElementById('shippingCost').value||0),
+    category: document.getElementById('itemCategory').value,
+    status: document.getElementById('itemStatus').value,
+    platform: document.getElementById('itemPlatform').value.trim(),
+    notes: document.getElementById('itemNotes').value.trim(),
+    photos: [...pendingPhotos],
+    updatedAt: new Date().toISOString()
+  };
+  const idx = inventory.findIndex(i => i.id === id);
+  if (idx >= 0) inventory[idx] = item; else inventory.unshift(item);
+  save();
+  renderInventory();
+  updateDashboard();
+  closeItemModal();
+  showToast(idx >= 0 ? 'Item updated ✓' : 'Item added ✓');
+
+  // Cloud sync
+  _supabase.from('inventory').upsert(item).then(({error}) => {
+    if (error) console.warn('Cloud sync:', error.message);
+  });
+}
+
+function deleteItem(id) {
+  if (!confirm('Delete this item?')) return;
+  inventory = inventory.filter(i => i.id !== id);
+  save();
+  renderInventory();
+  updateDashboard();
+  document.getElementById('itemDetailModal').classList.remove('active');
+  showToast('Item deleted');
+}
+
+function generateSKU() {
+  const cat = document.getElementById('itemCategory').value || 'ITEM';
+  document.getElementById('itemSKU').value = cat.substring(0,3).toUpperCase() + '-' + (Math.floor(Math.random()*9000)+1000);
+}
+
+// ════════════════════════════════════════════════
+// ITEM DETAIL
+// ════════════════════════════════════════════════
+function openItemDetail(id) {
+  const item = inventory.find(i => i.id === id);
+  if (!item) return;
+  const profit = calcProfit(item);
+  const taxRate = parseFloat(document.getElementById('taxRateInput')?.value || 15.3) / 100;
+  const tax = Math.max(0, profit * taxRate);
+
+  const photosHTML = (item.photos||[]).length
+    ? `<div class="flex gap-2 overflow-x-auto no-scrollbar mb-4">${item.photos.map(p=>`<img src="${p}" class="h-24 w-24 rounded-2xl object-cover flex-shrink-0 cursor-pointer" onclick="openPhotoFull('${p}')">`).join('')}</div>`
+    : `<div class="w-full h-32 bg-brand-secondary/50 rounded-2xl flex items-center justify-center text-4xl font-black text-brand-primary mb-4">${(item.name||'?')[0].toUpperCase()}</div>`;
+
+  document.getElementById('itemDetailContent').innerHTML = `
+    ${photosHTML}
+    <div class="flex justify-between items-start mb-1">
+      <h2 class="text-xl font-extrabold text-brand-dark">${item.name||'Unnamed'}</h2>
+      <span class="status-pill ${statusColor(item.status)}">${item.status||'Unlisted'}</span>
+    </div>
+    <p class="text-[10px] text-gray-400 font-mono mb-4">${item.sku||'NO-SKU'} · ${item.category||''}</p>
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="bg-brand-secondary/50 rounded-2xl p-4">
+        <p class="text-[9px] font-bold text-gray-400 uppercase">Cost</p>
+        <p class="text-lg font-black text-brand-dark">$${Number(item.purchase||0).toFixed(2)}</p>
+      </div>
+      <div class="bg-brand-secondary/50 rounded-2xl p-4">
+        <p class="text-[9px] font-bold text-gray-400 uppercase">Sale Price</p>
+        <p class="text-lg font-black text-brand-primary">$${Number(item.sale||0).toFixed(2)}</p>
+      </div>
+      <div class="bg-brand-secondary/50 rounded-2xl p-4">
+        <p class="text-[9px] font-bold text-gray-400 uppercase">Fees + Ship</p>
+        <p class="text-lg font-black text-brand-dark">$${(Number(item.platformFees||0)+Number(item.shippingCost||0)).toFixed(2)}</p>
+      </div>
+      <div class="rounded-2xl p-4 ${profit>=0?'bg-emerald-50':'bg-rose-50'}">
+        <p class="text-[9px] font-bold ${profit>=0?'text-emerald-700':'text-rose-700'} uppercase">Net Profit</p>
+        <p class="text-lg font-black ${profit>=0?'text-emerald-600':'text-rose-500'}">$${profit.toFixed(2)}</p>
+      </div>
+    </div>
+    ${item.platform ? `<p class="text-xs text-gray-500 mb-2"><span class="font-bold">Platform:</span> ${item.platform}</p>` : ''}
+    ${item.notes ? `<p class="text-xs text-gray-500 bg-gray-50 rounded-xl p-3 mb-4">${item.notes}</p>` : ''}
+    <p class="text-[9px] text-gray-300 mb-4">Tax Reserve (15.3%): $${tax.toFixed(2)}</p>
+    <div class="flex gap-3">
+      <button onclick="openItemModal('${item.id}');document.getElementById('itemDetailModal').classList.remove('active')" class="flex-1 bg-brand-primary text-white font-bold py-3 rounded-2xl bouncy">Edit</button>
+      <button onclick="deleteItem('${item.id}')" class="px-5 py-3 rounded-2xl bouncy text-rose-500 font-bold bg-rose-50">Delete</button>
+    </div>`;
+  document.getElementById('itemDetailModal').classList.add('active');
+  lucide.createIcons();
+}
+
+function openPhotoFull(src) {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  modal.innerHTML = `<img src="${src}" style="max-width:95vw;max-height:95vh;border-radius:1rem;object-fit:contain">`;
+  modal.onclick = () => document.body.removeChild(modal);
+  document.body.appendChild(modal);
+}
+
+// ════════════════════════════════════════════════
+// AI SCANNER
+// ════════════════════════════════════════════════
+function openAIScanner() {
+  document.getElementById('aiScanModal').classList.add('active');
+  document.getElementById('aiStep1').classList.remove('hidden');
+  document.getElementById('aiStep2').classList.add('hidden');
+  document.getElementById('aiStep3').classList.add('hidden');
+  document.getElementById('aiError').classList.add('hidden');
+  document.getElementById('aiImagePreviewWrap').classList.add('hidden');
+  document.getElementById('cameraPreviewWrap').classList.add('hidden');
+  document.getElementById('captureBtn').classList.add('hidden');
+  lucide.createIcons();
+}
+
+function closeAIScanner() {
+  document.getElementById('aiScanModal').classList.remove('active');
+  stopCamera();
+}
+
+function resetAIScanner() {
+  stopCamera();
+  openAIScanner();
+}
+
+async function startCamera() {
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    document.getElementById('cameraPreview').srcObject = cameraStream;
+    document.getElementById('cameraPreviewWrap').classList.remove('hidden');
+    document.getElementById('captureBtn').classList.remove('hidden');
+  } catch(err) {
+    showToast('Camera not available — use Upload instead');
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) { cameraStream.getTracks().forEach(t=>t.stop()); cameraStream = null; }
+}
+
+function captureFromCamera() {
+  const video = document.getElementById('cameraPreview');
+  const canvas = document.getElementById('aiCanvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video,0,0);
+  const dataUrl = canvas.toDataURL('image/jpeg',0.85);
+  document.getElementById('aiImagePreview').src = dataUrl;
+  document.getElementById('aiImagePreviewWrap').classList.remove('hidden');
+  document.getElementById('cameraPreviewWrap').classList.add('hidden');
+  document.getElementById('captureBtn').classList.add('hidden');
+  stopCamera();
+  runGroqVision(dataUrl);
+}
+
+function aiFileSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('aiImagePreview').src = e.target.result;
+    document.getElementById('aiImagePreviewWrap').classList.remove('hidden');
+    runGroqVision(e.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runGroqVision(dataUrl) {
+  const key = localStorage.getItem('reseller_groq_key');
+  if (!key) {
+    showAIError('No Groq API key set. Add it in Settings.');
+    return;
+  }
+  document.getElementById('aiStep1').classList.add('hidden');
+  document.getElementById('aiStep2').classList.remove('hidden');
+
+  const base64 = dataUrl.split(',')[1];
+  const mime = dataUrl.split(';')[0].split(':')[1];
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } },
+            { type: 'text', text: 'You are a reseller assistant. Identify this item and respond ONLY with valid JSON (no markdown): {"name":"...","category":"Electronics|Clothing|Shoes|Home|Collectibles|Books|General","estimated_cost":0,"estimated_sale_price":0,"notes":"brief condition/description"}' }
+          ]
+        }],
+        max_tokens: 300
+      })
+    });
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in response');
+    aiResults = JSON.parse(jsonMatch[0]);
+    showAIResults();
+  } catch(err) {
+    showAIError('AI analysis failed: ' + err.message);
+  }
+}
+
+function showAIResults() {
+  document.getElementById('aiStep2').classList.add('hidden');
+  document.getElementById('aiStep3').classList.remove('hidden');
+  const fields = document.getElementById('aiResultFields');
+  fields.innerHTML = `
+    <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Name</label><input class="form-input" id="ai-name" value="${aiResults.name||''}"></div>
+    <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Category</label>
+    <select class="form-input" id="ai-cat">
+      ${['Electronics','Clothing','Shoes','Home','Collectibles','Books','General'].map(c=>`<option ${c===aiResults.category?'selected':''}>${c}</option>`).join('')}
+    </select></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Est. Cost</label><input class="form-input" id="ai-cost" type="number" value="${aiResults.estimated_cost||0}"></div>
+      <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Est. Sale</label><input class="form-input" id="ai-sale" type="number" value="${aiResults.estimated_sale_price||0}"></div>
+    </div>
+    <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Notes</label><textarea class="form-input" id="ai-notes" rows="2">${aiResults.notes||''}</textarea></div>`;
+}
+
+function applyAIResults() {
+  document.getElementById('itemName').value = document.getElementById('ai-name').value;
+  document.getElementById('itemCategory').value = document.getElementById('ai-cat').value;
+  document.getElementById('purchasePrice').value = document.getElementById('ai-cost').value;
+  document.getElementById('salePrice').value = document.getElementById('ai-sale').value;
+  document.getElementById('itemNotes').value = document.getElementById('ai-notes').value;
+
+  // Also add the preview image to photos
+  const previewSrc = document.getElementById('aiImagePreview').src;
+  if (previewSrc && !previewSrc.includes('undefined')) pendingPhotos.unshift(previewSrc);
+  renderPhotoRow();
+  updateProfitPreview();
+  closeAIScanner();
+  showToast('AI details applied ✓');
+}
+
+function showAIError(msg) {
+  document.getElementById('aiStep2').classList.add('hidden');
+  document.getElementById('aiStep1').classList.add('hidden');
+  document.getElementById('aiError').classList.remove('hidden');
+  document.getElementById('aiErrorMsg').textContent = msg;
+}
+
+function saveGroqKey() {
+  const k = document.getElementById('groqKeyInput').value.trim();
+  if (k) { localStorage.setItem('reseller_groq_key', k); showToast('API key saved ✓'); }
+}
+
+// ════════════════════════════════════════════════
+// TASKS / KANBAN
+// ════════════════════════════════════════════════
+function openTaskModal(id) {
+  editingTaskId = id || null;
+  document.getElementById('taskForm').reset();
+  document.getElementById('editingTaskId').value = '';
+  document.getElementById('taskModalTitle').textContent = id ? 'Edit Task' : 'New Task';
+
+  // Populate linked item dropdown
+  const sel = document.getElementById('taskLinkedItem');
+  sel.innerHTML = '<option value="">None</option>' + inventory.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+
+  if (id) {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      document.getElementById('taskTitle').value = task.title || '';
+      document.getElementById('taskDetails').value = task.details || '';
+      document.getElementById('taskPriority').value = task.priority || 'normal';
+      document.getElementById('taskColumn').value = task.column || 'todo';
+      document.getElementById('taskLinkedItem').value = task.linkedItem || '';
+      document.getElementById('editingTaskId').value = id;
+    }
+  }
+  document.getElementById('taskModal').classList.add('active');
+}
+
+function closeTaskModal() { document.getElementById('taskModal').classList.remove('active'); }
+
+function saveTask(e) {
+  e.preventDefault();
+  const id = document.getElementById('editingTaskId').value || ('task_' + Date.now());
+  const task = {
+    id,
+    title: document.getElementById('taskTitle').value.trim(),
+    details: document.getElementById('taskDetails').value.trim(),
+    priority: document.getElementById('taskPriority').value,
+    column: document.getElementById('taskColumn').value,
+    linkedItem: document.getElementById('taskLinkedItem').value,
+    createdAt: new Date().toISOString()
+  };
+  const idx = tasks.findIndex(t => t.id === id);
+  if (idx >= 0) tasks[idx] = task; else tasks.push(task);
+  save();
+  renderTasks();
+  closeTaskModal();
+  showToast('Task saved ✓');
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  save();
+  renderTasks();
+}
+
+function renderTasks() {
+  const cols = { todo:[], active:[], done:[] };
+  tasks.forEach(t => { if (cols[t.column]) cols[t.column].push(t); });
+
+  Object.entries(cols).forEach(([col, items]) => {
+    const el = document.getElementById(col+'-list');
+    document.getElementById('count-'+col).textContent = items.length;
+    if (!items.length) { el.innerHTML = `<div class="text-center py-4 text-gray-300 text-xs font-medium">Drop tasks here</div>`; return; }
+    el.innerHTML = items.map(task => {
+      const linked = task.linkedItem ? inventory.find(i=>i.id===task.linkedItem) : null;
+      const priorityColor = task.priority==='high' ? 'bg-rose-100 text-rose-600' : task.priority==='low' ? 'bg-gray-100 text-gray-400' : 'bg-brand-accent text-brand-primary';
+      return `<div class="task-card" draggable="true" id="tc-${task.id}"
+          ondragstart="dragStart(event,'${task.id}')"
+          ondragend="dragEnd(event)">
+        <div class="flex justify-between items-start mb-2">
+          <p class="font-bold text-sm text-brand-dark flex-1 pr-2">${task.title}</p>
+          <div class="flex gap-1 flex-shrink-0">
+            <span class="badge ${priorityColor}">${task.priority}</span>
+            <button onclick="openTaskModal('${task.id}')" class="text-gray-300 hover:text-brand-primary p-0.5"><i data-lucide="edit-2" style="width:12px;height:12px"></i></button>
+            <button onclick="deleteTask('${task.id}')" class="text-gray-300 hover:text-rose-400 p-0.5"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button>
+          </div>
+        </div>
+        ${task.details ? `<p class="text-[11px] text-gray-400 mb-2">${task.details}</p>` : ''}
+        ${linked ? `<div class="flex items-center gap-2 mt-2 bg-brand-secondary/60 rounded-xl px-2 py-1.5">
+          ${linked.photos&&linked.photos[0]?`<img src="${linked.photos[0]}" class="w-5 h-5 rounded object-cover">`:`<div class="w-5 h-5 rounded bg-brand-accent flex items-center justify-center text-[8px] font-bold text-brand-primary">${(linked.name||'?')[0]}</div>`}
+          <p class="text-[10px] font-bold text-brand-primary truncate">${linked.name}</p>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+    lucide.createIcons();
+  });
+}
+
+// Drag & Drop
+let draggedTaskId = null;
+function dragStart(e, id) { draggedTaskId = id; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }
+function dragEnd(e) { e.currentTarget.classList.remove('dragging'); }
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function drop(e, col) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedTaskId) return;
+  const task = tasks.find(t => t.id === draggedTaskId);
+  if (task) { task.column = col; save(); renderTasks(); }
+  draggedTaskId = null;
+}
+// Remove drag-over on dragleave
+document.addEventListener('dragleave', e => {
+  if (e.target.classList && e.target.classList.contains('kanban-col')) e.target.classList.remove('drag-over');
+});
+
+// Auto-task generation when item added
+function generateAutoTasks(item) {
+  const autoTasks = [
+    { title:`List "${item.name}" online`, details:'Research comps, write description, take final photos', column:'todo', priority:'high' },
+    { title:`Price check for "${item.name}"`, details:'Compare sold listings on eBay/Poshmark', column:'todo', priority:'normal' }
+  ];
+  autoTasks.forEach(t => {
+    tasks.push({ id:'task_'+Date.now()+Math.random(), ...t, linkedItem:item.id, createdAt:new Date().toISOString() });
+  });
+  save();
+  renderTasks();
+}
+
+// ════════════════════════════════════════════════
+// MILEAGE — GPS GEOLOCATION
+// ════════════════════════════════════════════════
+function toggleGPSTrip() {
+  if (tripActive) { stopGPSTrip(); return; }
+  if (!navigator.geolocation) { openManualTripModal(); return; }
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    tripActive = true;
+    tripStartCoords = pos.coords;
+    tripStartTime = Date.now();
+    tripTotalMeters = 0;
+    lastCoords = pos.coords;
+
+    document.getElementById('startTripBtn').style.display = 'none';
+    document.getElementById('gpsStatusBar').classList.remove('hidden');
+
+    // Watch position
+    gpsWatchId = navigator.geolocation.watchPosition(onGPSUpdate, onGPSError, {
+      enableHighAccuracy: true, maximumAge: 5000, timeout: 10000
+    });
+
+    // Timer
+    tripTimerInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - tripStartTime) / 1000);
+      const m = String(Math.floor(elapsed/60)).padStart(2,'0');
+      const s = String(elapsed%60).padStart(2,'0');
+      document.getElementById('tripTimer').textContent = `${m}:${s}`;
+    }, 1000);
+
+    lucide.createIcons();
+    showToast('GPS trip started 📍');
+  }, () => {
+    showToast('Location denied — logging manually');
+    openManualTripModal();
+  }, { enableHighAccuracy:true, timeout:8000 });
+}
+
+function onGPSUpdate(pos) {
+  if (!tripActive || !lastCoords) return;
+  const d = haversineMeters(lastCoords.latitude, lastCoords.longitude, pos.coords.latitude, pos.coords.longitude);
+  if (d > 5) { tripTotalMeters += d; lastCoords = pos.coords; }
+  const miles = metersToMiles(tripTotalMeters);
+  document.getElementById('liveDistance').textContent = miles.toFixed(2) + ' mi';
+}
+
+function onGPSError(err) { console.warn('GPS error:', err.message); }
+
+function stopGPSTrip() {
+  if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+  clearInterval(tripTimerInterval);
+  tripActive = false;
+  document.getElementById('gpsStatusBar').classList.add('hidden');
+  document.getElementById('startTripBtn').style.display = 'flex';
+
+  const miles = metersToMiles(tripTotalMeters);
+  if (miles < 0.05) { showToast('Trip too short, not saved.'); return; }
+
+  // Pre-fill manual modal with GPS data
+  document.getElementById('mileageQuickMiles').value = miles.toFixed(2);
+  document.getElementById('mileageQuickDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('tripDeductionPreview').textContent = '$' + (miles * IRS_RATE).toFixed(2);
+  openManualTripModal();
+}
+
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function metersToMiles(m) { return m * 0.000621371; }
+
+function openManualTripModal() {
+  if (!document.getElementById('mileageQuickDate').value) {
+    document.getElementById('manualTripForm').reset();
+    document.getElementById('mileageQuickDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('tripDeductionPreview').textContent = '$0.00';
+  }
+  document.getElementById('manualTripModal').classList.add('active');
+}
+
+function closeManualTripModal() { document.getElementById('manualTripModal').classList.remove('active'); }
+
+function saveManualTrip(e) {
+  e.preventDefault();
+  const miles = parseFloat(document.getElementById('mileageQuickMiles').value);
+  const purpose = document.getElementById('mileageQuickPurpose').value;
+  const date = document.getElementById('mileageQuickDate').value;
+  const deduction = Math.round(miles * IRS_RATE * 100) / 100;
+  mileageTrips.push({ id:'m'+Date.now(), date, miles, purpose, deduction });
+  save();
+  renderMileage();
+  closeManualTripModal();
+  showToast(`Trip logged: ${miles.toFixed(1)} mi ✓`);
+}
+
+function renderMileage() {
+  const totalMiles = mileageTrips.reduce((s,t) => s+t.miles, 0);
+  const totalDeduction = mileageTrips.reduce((s,t) => s+t.deduction, 0);
+  document.getElementById('totalMiles').textContent = totalMiles.toFixed(1);
+  document.getElementById('totalMileageDeduction').textContent = '$' + totalDeduction.toFixed(2);
+
+  const tbody = document.getElementById('mileageTripLog');
+  const empty = document.getElementById('mileageEmpty');
+  if (!mileageTrips.length) { if(empty)empty.style.display=''; return; }
+  if(empty)empty.style.display='none';
+
+  const sorted = [...mileageTrips].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  tbody.innerHTML = sorted.map(trip => {
+    const dateStr = new Date(trip.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return `<tr class="border-b border-gray-100 hover:bg-gray-50 bouncy">
+      <td class="p-4 text-xs font-bold text-gray-400">${dateStr}</td>
+      <td class="p-4 text-sm font-bold text-brand-dark">${trip.purpose}</td>
+      <td class="p-4 text-right text-xs font-bold text-gray-500">${trip.miles.toFixed(1)} mi</td>
+      <td class="p-4 text-right font-black text-emerald-600 text-sm">$${trip.deduction.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
+// SETTINGS / EXPORT
+// ════════════════════════════════════════════════
+function exportData() {
+  const data = { inventory, tasks, mileageTrips, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reseller-pro-export-'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();
+}
+
+function clearAllData() {
+  if (!confirm('Clear ALL local data? This cannot be undone.')) return;
+  inventory=[]; tasks=[]; mileageTrips=[];
+  save();
+  renderInventory(); renderTasks(); renderMileage(); updateDashboard();
+  showToast('All data cleared');
+}
+
+// ════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════
+let toastTimeout;
+function showToast(msg) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.classList.add('hidden'), 2800);
+}
+</script>
+</body>
+</html>
